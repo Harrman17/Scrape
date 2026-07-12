@@ -31,3 +31,4 @@
 /Users/harman/Projects/Scrape/backend/Api/obj/Debug/net10.0/AmazonScraper.Api.pdb
 /Users/harman/Projects/Scrape/backend/Api/obj/Debug/net10.0/AmazonScraper.Api.genruntimeconfig.cache
 /Users/harman/Projects/Scrape/backend/Api/obj/Debug/net10.0/ref/AmazonScraper.Api.dll
+/Users/harman/Projects/Scrape/backend/api/obj/Debug/net10.0/AmazonScraper.Api.sourcelink.json

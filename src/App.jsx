@@ -14,7 +14,7 @@ function App() {
     setResult(null)
 
     try {
-      const response = await fetch('http://localhost:5246/api/scrape', {
+      const response = await fetch('http://localhost:5211/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),

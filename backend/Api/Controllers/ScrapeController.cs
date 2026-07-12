@@ -15,7 +15,7 @@ public class ScrapeController : ControllerBase
             return BadRequest(new { error = "A product URL is required." });
         }
 
-        var python = "/Users/harman/Projects/Scrape/.venv/bin/py";
+        var python = "/Users/harman/Projects/Scrape/.venv/bin/Python";
         var script = "/Users/harman/Projects/Scrape/backend/py/amzProductScrape.py";
         var startInfo = new ProcessStartInfo
         {

@@ -88,11 +88,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/harman/Projects/Scrape/backend/Api/AmazonScraper.Api.csproj",
+      "projectUniqueName": "/Users/harman/Projects/Scrape/backend/api/AmazonScraper.Api.csproj",
       "projectName": "AmazonScraper.Api",
-      "projectPath": "/Users/harman/Projects/Scrape/backend/Api/AmazonScraper.Api.csproj",
+      "projectPath": "/Users/harman/Projects/Scrape/backend/api/AmazonScraper.Api.csproj",
       "packagesPath": "/Users/harman/.nuget/packages/",
-      "outputPath": "/Users/harman/Projects/Scrape/backend/Api/obj/",
+      "outputPath": "/Users/harman/Projects/Scrape/backend/api/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/harman/.nuget/NuGet/NuGet.Config"

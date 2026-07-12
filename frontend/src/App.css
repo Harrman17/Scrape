@@ -1,0 +1,78 @@
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.hero-card {
+  width: min(760px, 100%);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  padding: 32px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 0.8rem;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #4b5563;
+  margin-bottom: 24px;
+}
+
+.scrape-form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.scrape-form input {
+  flex: 1 1 320px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  font-size: 1rem;
+}
+
+.scrape-form button {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.scrape-form button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.message {
+  margin-top: 16px;
+}
+
+.message.error {
+  color: #b91c1c;
+}
+
+.result-card {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.result-card a {
+  color: #2563eb;
+  font-weight: 600;
+}

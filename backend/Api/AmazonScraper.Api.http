@@ -1,0 +1,6 @@
+@AmazonScraper.Api_HostAddress = http://localhost:5211
+
+GET {{AmazonScraper.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

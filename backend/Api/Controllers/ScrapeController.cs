@@ -10,17 +10,18 @@ public class ScrapeController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<object>> Post([FromBody] ScrapeRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Url))
+        if (request.Asins is null || request.Asins.Count == 0)
         {
-            return BadRequest(new { error = "A product URL is required." });
+            return BadRequest(new { error = "At least one ASIN is required." });
         }
 
-        var python = "/Users/harman/Projects/Scrape/.venv/bin/Python";
+        var python = "/Users/harman/Projects/Scrape/.venv/bin/python";
         var script = "/Users/harman/Projects/Scrape/backend/py/amzProductScrape.py";
+        var asinArguments = string.Join(" ", request.Asins.Select(asin => $"\"{asin}\""));
         var startInfo = new ProcessStartInfo
         {
             FileName = python,
-            Arguments = $"\"{script}\" \"{request.Url}\"",
+            Arguments = $"\"{script}\" {asinArguments}",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
@@ -50,5 +51,5 @@ public class ScrapeController : ControllerBase
 
 public class ScrapeRequest
 {
-    public string Url { get; set; } = string.Empty;
+    public List<string> Asins { get; set; } = new();
 }

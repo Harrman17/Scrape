@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AmazonScraper.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+af5a86c1e79768bf6114126e4b22ed7f0c5cab48")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+86c25fa6cef76ac72e100b79ca8b244b154d8aa7")]
 [assembly: System.Reflection.AssemblyProductAttribute("AmazonScraper.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AmazonScraper.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

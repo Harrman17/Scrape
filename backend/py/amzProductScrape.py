@@ -24,68 +24,82 @@ def extract_asin(url: str) -> str | None:
     return None
 
 
-def parse_product_html(html: str, url: str) -> dict[str, Any]:
+def normalize_asin(value: str) -> str | None:
+    cleaned = value.strip().upper()
+    match = re.fullmatch(r"[A-Z0-9]{10}", cleaned)
+    return cleaned if match else None
 
+
+def parse_product_html(html: str, url: str) -> dict[str, Any]:
     soup = BeautifulSoup(html, "html.parser")
 
     title = None
-
-    for tag in [
-        soup.select_one("#productTitle"),
-        soup.find("h1"),
-    ]:
-
-        if tag is None:
-            continue
-
-        text = tag.get_text(" ", strip=True)
-
-        if text:
-            title = text
+    for selector in ["#productTitle", "h1", "meta[property='og:title']"]:
+        if selector.startswith("meta"):
+            element = soup.select_one(selector)
+            if element is not None:
+                title = (element.get("content") or "").strip()
+        else:
+            element = soup.select_one(selector)
+            if element is not None:
+                title = element.get_text(" ", strip=True)
+        if title:
             break
 
-
     price = None
-
     for selector in [
+        "#priceblock_ourprice",
+        "#priceblock_saleprice",
+        "#priceblock_dealprice",
+        "#corePriceDisplay_desktop_feature_div .a-offscreen",
         ".a-price .a-offscreen",
         ".a-offscreen",
         ".a-price",
-        "#priceblock_ourprice",
-        "#priceblock_saleprice",
     ]:
-
         element = soup.select_one(selector)
-
-        if element:
+        if element is not None:
             price = element.get_text(" ", strip=True)
-            break
-
+            if price:
+                break
 
     asin = extract_asin(url)
-
 
     return {
         "title": title or "Unknown product",
         "price": price or "N/A",
         "asin": asin or "",
-        "url": url,
     }
 
 
-def scrape_product(url: str) -> dict[str, Any]:
-
+def scrape_page(page, url: str) -> dict[str, Any]:
     if not url.startswith("http"):
         raise ValueError("Invalid URL")
 
+    page.goto(
+        url,
+        wait_until="domcontentloaded",
+        timeout=30000
+    )
+
+    # Wait for Amazon product title
+    try:
+        page.wait_for_selector(
+            "#productTitle",
+            timeout=5000
+        )
+    except Exception:
+        pass
+
+    html = page.content()
+    return parse_product_html(html, url)
+
+
+def scrape_asins(asins: list[str]) -> list[dict[str, Any]]:
+    results = []
 
     with sync_playwright() as p:
-
-        browser = p.chromium.launch(
-            headless=True
-        )
-
-        page = browser.new_page(
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
             user_agent=(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 "
@@ -93,41 +107,23 @@ def scrape_product(url: str) -> dict[str, Any]:
             ),
             locale="en-GB"
         )
+        page = context.new_page()
 
-
-        page.goto(
-            url,
-            wait_until="domcontentloaded",
-            timeout=30000
-        )
-
-
-        # Wait for Amazon product title
         try:
-            page.wait_for_selector(
-                "#productTitle",
-                timeout=10000
-            )
+            for asin in asins:
+                url = f"https://www.amazon.co.uk/dp/{asin}"
+                try:
+                    result = scrape_page(page, url)
+                except Exception as exc:  # noqa: BLE001
+                    result = {"title": "Unknown product", "price": "N/A", "asin": asin, "error": str(exc)}
+                result["asin"] = asin
+                result["url"] = url
+                results.append(result)
+        finally:
+            browser.close()
 
-        except:
-            pass
+    return results
 
-
-        html = page.content()
-
-
-        with open(
-            "amazon.html",
-            "w",
-            encoding="utf-8"
-        ) as f:
-            f.write(html)
-
-
-        browser.close()
-
-
-    return parse_product_html(html, url)
 
 def main():
 
@@ -141,17 +137,16 @@ def main():
 
 
     try:
-        result = scrape_product(sys.argv[1])
+        asin_inputs = [normalize_asin(argument) for argument in sys.argv[1:]]
+        asins = [asin for asin in asin_inputs if asin is not None]
 
+        if not asins:
+            raise ValueError("At least one valid ASIN is required")
+
+        result = scrape_asins(asins)
     except Exception as exc:
-        print(
-            json.dumps(
-                {"error": str(exc)}
-            )
-        )
-
+        print(json.dumps({"error": str(exc)}))
         sys.exit(1)
-
 
     print(json.dumps(result))
 

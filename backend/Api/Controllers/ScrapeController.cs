@@ -15,8 +15,8 @@ public class ScrapeController : ControllerBase
             return BadRequest(new { error = "At least one ASIN is required." });
         }
 
-        var python = "/Users/harman/Projects/Scrape/.venv/bin/python";
-        var script = "/Users/harman/Projects/Scrape/backend/py/amzProductScrape.py";
+        var python = "C:/Development/Scrape/backend/py/.venv/Scripts/python.exe";
+        var script = "C:/Development/Scrape/backend/py/amzProductScrape.py";
         var asinArguments = string.Join(" ", request.Asins.Select(asin => $"\"{asin}\""));
         var startInfo = new ProcessStartInfo
         {

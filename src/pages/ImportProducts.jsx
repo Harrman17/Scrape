@@ -38,13 +38,12 @@ function ImportProducts() {
   }
 
   return (
-    <section className="grid min-h-screen place-items-center p-8">
-      <div className="w-full max-w-[760px] rounded-3xl border border-gray-200 bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-        <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-600">Amazon Scraper</p>
+    <section className="grid min-h-screen place-items-center p-8 dark:bg-slate-950">
+      <div className="w-full max-w-[760px] rounded-3xl border border-gray-200 bg-white p-8 shadow-[0_18px_50px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-slate-900">
 
-        <h1 className="mt-2 text-3xl font-bold">Pull product details from multiple ASINs</h1>
+        <h1 className="mt-2 text-3xl font-bold dark:text-slate-100">Pull product details from multiple ASINs</h1>
 
-        <p className="mb-6 mt-2 text-gray-600">
+        <p className="mb-6 mt-2 text-gray-600 dark:text-slate-400">
           Paste one ASIN per line and the app will return the title, price and ASIN for each product.
         </p>
 
@@ -52,7 +51,7 @@ function ImportProducts() {
           <textarea
             value={asins}
             onChange={(event) => setAsins(event.target.value)}
-            className="min-h-40 min-w-[320px] flex-1 rounded-xl border border-slate-300 px-4 py-3 text-base outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="min-h-40 min-w-[320px] flex-1 rounded-xl border border-slate-300 px-4 py-3 text-base outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-blue-900"
             placeholder={"B09H39M36G\nB09H39M37H\nB091234ASDF"}
             aria-label="Amazon ASINs"
           />
@@ -66,20 +65,20 @@ function ImportProducts() {
           </button>
         </form>
 
-        {error ? <p className="mt-4 text-red-700">{error}</p> : null}
+        {error ? <p className="mt-4 text-red-700 dark:text-red-400">{error}</p> : null}
 
         {results.length > 0 ? (
           <div className="mt-6 grid gap-4">
             {results.map((result) => (
-              <div key={result.asin} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-                <h2 className="text-xl font-semibold">{result.title}</h2>
-                <p>
+              <div key={result.asin} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left dark:border-slate-700 dark:bg-slate-800">
+                <h2 className="text-xl font-semibold dark:text-slate-100">{result.title}</h2>
+                <p className="dark:text-slate-300">
                   <strong>ASIN:</strong> {result.asin}
                 </p>
-                <p>
+                <p className="dark:text-slate-300">
                   <strong>Price:</strong> {result.price}
                 </p>
-                <a href={result.url} target="_blank" rel="noreferrer" className="font-semibold text-blue-600 hover:underline">
+                <a href={result.url} target="_blank" rel="noreferrer" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">
                   Open product page
                 </a>
               </div>

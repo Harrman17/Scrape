@@ -30,6 +30,20 @@ def normalize_asin(value: str) -> str | None:
     return cleaned if match else None
 
 
+def parse_price_decimal(price_text: str | None) -> float | None:
+    """Extract a numeric price value from text like '£9.99' or '£1,234.56'."""
+    if not price_text or price_text == "N/A":
+        return None
+    cleaned = price_text.replace(",", "")
+    match = re.search(r"\d+\.?\d*", cleaned)
+    if match:
+        try:
+            return float(match.group())
+        except ValueError:
+            return None
+    return None
+
+
 def parse_product_html(html: str, url: str) -> dict[str, Any]:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -46,7 +60,7 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         if title:
             break
 
-    price = None
+    price_text = None
     for selector in [
         "#priceblock_ourprice",
         "#priceblock_saleprice",
@@ -58,15 +72,40 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
     ]:
         element = soup.select_one(selector)
         if element is not None:
-            price = element.get_text(" ", strip=True)
-            if price:
+            price_text = element.get_text(" ", strip=True)
+            if price_text:
                 break
+
+    image_url = None
+    for selector in [
+        "#landingImage",
+        "#imgTagWrapperId img",
+        "#main-image",
+        "meta[property='og:image']",
+    ]:
+        if selector.startswith("meta"):
+            element = soup.select_one(selector)
+            if element is not None:
+                image_url = (element.get("content") or "").strip() or None
+        else:
+            element = soup.select_one(selector)
+            if element is not None:
+                image_url = (
+                    element.get("data-old-hires")
+                    or element.get("src")
+                    or ""
+                ).strip() or None
+        if image_url:
+            break
 
     asin = extract_asin(url)
 
     return {
         "title": title or "Unknown product",
-        "price": price or "N/A",
+        "price": price_text or "N/A",
+        "amazon_price": parse_price_decimal(price_text),
+        "image_url": image_url,
+        "currency": "GBP",
         "asin": asin or "",
     }
 

@@ -66,25 +66,6 @@ function ImportProducts() {
         </form>
 
         {error ? <p className="mt-4 text-red-700 dark:text-red-400">{error}</p> : null}
-
-        {results.length > 0 ? (
-          <div className="mt-6 grid gap-4">
-            {results.map((result) => (
-              <div key={result.asin} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left dark:border-slate-700 dark:bg-slate-800">
-                <h2 className="text-xl font-semibold dark:text-slate-100">{result.title}</h2>
-                <p className="dark:text-slate-300">
-                  <strong>ASIN:</strong> {result.asin}
-                </p>
-                <p className="dark:text-slate-300">
-                  <strong>Price:</strong> {result.price}
-                </p>
-                <a href={result.url} target="_blank" rel="noreferrer" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">
-                  Open product page
-                </a>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </div>
     </section>
   )

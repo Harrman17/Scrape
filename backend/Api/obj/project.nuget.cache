@@ -1,25 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "H3doX5IXa18=",
+  "dgSpecHash": "jjBKsFHjUts=",
   "success": true,
   "projectFilePath": "/Users/harman/Projects/Scrape/backend/api/AmazonScraper.Api.csproj",
   "expectedPackageFiles": [
-    "/Users/harman/.nuget/packages/microsoft.aspnetcore.openapi/10.0.0/microsoft.aspnetcore.openapi.10.0.0.nupkg.sha512",
-    "/Users/harman/.nuget/packages/microsoft.openapi/2.0.0/microsoft.openapi.2.0.0.nupkg.sha512",
+    "/Users/harman/.nuget/packages/microsoft.aspnetcore.openapi/10.0.10/microsoft.aspnetcore.openapi.10.0.10.nupkg.sha512",
+    "/Users/harman/.nuget/packages/microsoft.openapi/2.11.0/microsoft.openapi.2.11.0.nupkg.sha512",
     "/Users/harman/.nuget/packages/npgsql/10.0.3/npgsql.10.0.3.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1903",
-      "level": "Warning",
-      "message": "Package 'Microsoft.OpenApi' 2.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-v5pm-xwqc-g5wc",
-      "projectPath": "/Users/harman/Projects/Scrape/backend/api/AmazonScraper.Api.csproj",
-      "warningLevel": 1,
-      "filePath": "/Users/harman/Projects/Scrape/backend/api/AmazonScraper.Api.csproj",
-      "libraryId": "Microsoft.OpenApi",
-      "targetGraphs": [
-        "net10.0"
-      ]
-    }
-  ]
+  "logs": []
 }

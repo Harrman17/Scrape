@@ -12,6 +12,42 @@ public class InventoryRepository
         _dataSource = dataSource;
     }
 
+    public async Task<List<InventoryItem>> GetAllAsync()
+    {
+        const string sql = @"
+            SELECT id, asin, title, image_url, amazon_url, amazon_price,
+                   selling_price, stock_quantity, currency, is_active,
+                   last_scraped, created_at, ebay_item_id
+            FROM inventory
+            ORDER BY created_at DESC";
+
+        await using var conn = await _dataSource.OpenConnectionAsync();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        await using var reader = await cmd.ExecuteReaderAsync();
+
+        var items = new List<InventoryItem>();
+        while (await reader.ReadAsync())
+        {
+            items.Add(new InventoryItem
+            {
+                Id            = reader.GetInt64(0),
+                Asin          = reader.GetString(1),
+                Title         = reader.GetString(2),
+                ImageUrl      = reader.IsDBNull(3) ? null : reader.GetString(3),
+                AmazonUrl     = reader.GetString(4),
+                AmazonPrice   = reader.IsDBNull(5) ? null : reader.GetDecimal(5),
+                SellingPrice  = reader.IsDBNull(6) ? null : reader.GetDecimal(6),
+                StockQuantity = reader.IsDBNull(7) ? null : reader.GetInt32(7),
+                Currency      = reader.IsDBNull(8) ? null : reader.GetString(8).Trim(),
+                IsActive      = reader.GetBoolean(9),
+                LastScraped   = reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
+                CreatedAt     = reader.IsDBNull(11) ? null : reader.GetFieldValue<DateTimeOffset>(11),
+                EbayItemId    = reader.IsDBNull(12) ? null : reader.GetString(12),
+            });
+        }
+        return items;
+    }
+
     public async Task<InventoryItem> UpsertAsync(ScrapedProduct product)
     {
         const string sql = @"
@@ -28,7 +64,7 @@ public class InventoryRepository
                 last_scraped = NOW()
             RETURNING id, asin, title, image_url, amazon_url, amazon_price,
                       selling_price, stock_quantity, currency, is_active,
-                      last_scraped, created_at";
+                      last_scraped, created_at, ebay_item_id";
 
         await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = new NpgsqlCommand(sql, conn);
@@ -57,6 +93,7 @@ public class InventoryRepository
             IsActive      = reader.GetBoolean(9),
             LastScraped   = reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
             CreatedAt     = reader.IsDBNull(11) ? null : reader.GetFieldValue<DateTimeOffset>(11),
+            EbayItemId    = reader.IsDBNull(12) ? null : reader.GetString(12),
         };
     }
 }

@@ -19,6 +19,13 @@ public class ScrapeController : ControllerBase
         _inventory = inventory;
     }
 
+    [HttpGet]
+    public async Task<ActionResult<List<InventoryItem>>> Get()
+    {
+        var items = await _inventory.GetAllAsync();
+        return Ok(items);
+    }
+
     [HttpPost]
     public async Task<ActionResult<List<InventoryItem>>> Post([FromBody] ScrapeRequest request)
     {

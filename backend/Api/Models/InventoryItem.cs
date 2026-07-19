@@ -12,6 +12,7 @@ public class InventoryItem
     public int? StockQuantity { get; set; }
     public string? Currency { get; set; }
     public bool IsActive { get; set; }
+    public string? EbayItemId { get; set; }
     public DateTimeOffset? LastScraped { get; set; }
     public DateTimeOffset? CreatedAt { get; set; }
 }

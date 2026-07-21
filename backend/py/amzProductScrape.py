@@ -98,6 +98,19 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         if image_url:
             break
 
+    # Availability
+    in_stock = False
+    availability_el = soup.select_one("#availability span, #availability")
+    if availability_el:
+        availability_text = availability_el.get_text(" ", strip=True).lower()
+        in_stock = (
+            "in stock" in availability_text
+            or "only" in availability_text
+        )
+    else:
+        # Fallback: add-to-cart button present means purchasable
+        in_stock = soup.select_one("#add-to-cart-button") is not None
+
     asin = extract_asin(url)
 
     return {
@@ -105,6 +118,7 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         "price": price_text or "N/A",
         "amazon_price": parse_price_decimal(price_text),
         "image_url": image_url,
+        "in_stock": in_stock,
         "currency": "GBP",
         "asin": asin or "",
     }

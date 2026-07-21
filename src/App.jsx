@@ -3,7 +3,10 @@ import './App.css'
 import ImportProducts from './pages/ImportProducts'
 import Home from './pages/Home';
 import Inventory from './pages/Inventory';
-import { Routes, Route, Link } from "react-router-dom";
+import Settings from './pages/Settings';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import { Routes, Route, Link, Navigate } from "react-router-dom";
 
 function App() {
     const [isDark, setIsDark] = useState(() => {
@@ -12,10 +15,39 @@ function App() {
         return window.matchMedia('(prefers-color-scheme: dark)').matches
     })
 
+    const [user, setUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem('authUser')
+            return stored ? JSON.parse(stored) : null
+        } catch {
+            return null
+        }
+    })
+
     useEffect(() => {
         document.documentElement.classList.toggle('dark', isDark)
         window.localStorage.setItem('theme', isDark ? 'dark' : 'light')
     }, [isDark])
+
+    function handleLogin(userData) {
+        setUser(userData)
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('authUser')
+        setUser(null)
+    }
+
+    if (!user) {
+        return (
+            <Routes>
+                <Route path="/login" element={<Login onLogin={handleLogin} />} />
+                <Route path="/register" element={<Register onLogin={handleLogin} />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+        )
+    }
 
     return (
         <>
@@ -29,20 +61,36 @@ function App() {
                         Inventory
                     </Link>
                 </div>
-
-                <button
-                    type="button"
-                    onClick={() => setIsDark((prev) => !prev)}
-                    className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                    {isDark ? '☀️ Light mode' : '🌙 Dark mode'}
-                </button>
+                <div className='flex items-center gap-3'>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">{user.name}</span>
+                    <button
+                        type="button"
+                        onClick={() => setIsDark((prev) => !prev)}
+                        className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                        {isDark ? '☀️' : '🌙 '}
+                    </button>
+                    <button className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                        <Link to="/settings">
+                            ⚙️
+                        </Link>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                        Sign out
+                    </button>
+                </div>
             </nav>
 
             <Routes>
                 <Route path="/"  element={<Home />}/>
                 <Route path="/import-products" element={<ImportProducts />} />
                 <Route path="/inventory" element={<Inventory />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </>
     );

@@ -22,6 +22,9 @@ public class ScrapedProduct
     [JsonPropertyName("currency")]
     public string Currency { get; set; } = "GBP";
 
+    [JsonPropertyName("in_stock")]
+    public bool InStock { get; set; }
+
     [JsonPropertyName("error")]
     public string? Error { get; set; }
 }

@@ -13,11 +13,13 @@ namespace AmazonScraper.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly UsersRepository _users;
+    private readonly UserSettingsRepository _userSettings;
     private readonly IConfiguration _config;
 
-    public AuthController(UsersRepository users, IConfiguration config)
+    public AuthController(UsersRepository users, UserSettingsRepository userSettings, IConfiguration config)
     {
         _users = users;
+        _userSettings = userSettings;
         _config = config;
     }
 
@@ -72,6 +74,17 @@ public class AuthController : ControllerBase
 
         if (user == null)
             return StatusCode(500, new { error = "Failed to create account." });
+
+        // Create default user settings
+        try
+        {
+            await _userSettings.CreateAsync(user.Id);
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail - user was created successfully
+            Console.WriteLine($"Failed to create default settings for user {user.Id}: {ex.Message}");
+        }
 
         var token = GenerateJwt(user);
         return Ok(new

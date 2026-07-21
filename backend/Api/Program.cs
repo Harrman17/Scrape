@@ -1,4 +1,7 @@
 using Npgsql;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using AmazonScraper.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,8 +28,31 @@ var dbName     = Environment.GetEnvironmentVariable("DATABASE_NAME") ?? throw ne
 var connectionString = $"Host={dbHost};Username={dbUser};Password={dbPassword};Database={dbName};SSL Mode=Require;Trust Server Certificate=true";
 var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
 builder.Services.AddSingleton(dataSource);
+
+// Register repositories
 builder.Services.AddScoped<InventoryRepository>();
 builder.Services.AddScoped<UsersRepository>();
+builder.Services.AddScoped<UserInventoryRepository>();
+builder.Services.AddScoped<UserSettingsRepository>();
+
+// Configure JWT Authentication
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") 
+    ?? throw new InvalidOperationException("Missing env var: JWT_SECRET");
+var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = key,
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
@@ -48,5 +74,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("frontend");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.Run();

@@ -26,6 +26,7 @@ var connectionString = $"Host={dbHost};Username={dbUser};Password={dbPassword};D
 var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
 builder.Services.AddSingleton(dataSource);
 builder.Services.AddScoped<InventoryRepository>();
+builder.Services.AddScoped<UsersRepository>();
 
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();

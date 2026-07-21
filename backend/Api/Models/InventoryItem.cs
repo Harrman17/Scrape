@@ -10,6 +10,7 @@ public class InventoryItem
     public decimal? AmazonPrice { get; set; }
     public decimal? SellingPrice { get; set; }
     public int? StockQuantity { get; set; }
+    public bool InStock { get; set; }
     public string? Currency { get; set; }
     public bool IsActive { get; set; }
     public string? EbayItemId { get; set; }

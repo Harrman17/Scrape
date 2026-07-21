@@ -2,10 +2,19 @@ import { useState, useEffect } from 'react'
 
 const PAGE_SIZE = 10
 
+function loadSettings() {
+  try {
+    return JSON.parse(localStorage.getItem('appSettings') || '{}')
+  } catch {
+    return {}
+  }
+}
+
 function Inventory() {
   const [products, setProducts] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [settings] = useState(loadSettings)
 
   useEffect(() => {
     fetch('/api/scrape')
@@ -167,9 +176,18 @@ function Inventory() {
                       £{product.amazonPrice ?? '—'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-1.5 tabular-nums">
-                      {product.sellingPrice != null ? `£${product.sellingPrice}` : '—'}
+                      {(() => {
+                        if (product.sellingPrice != null) return `£${product.sellingPrice}`
+                        const markup = parseFloat(settings.profitMarkup)
+                        if (!isNaN(markup) && markup > 0 && product.amazonPrice != null) {
+                          return `£${(product.amazonPrice * (1 + markup / 100)).toFixed(2)}`
+                        }
+                        return '—'
+                      })()}
                     </td>
-                    <td className="px-3 py-1.5 tabular-nums">{product.stockQuantity ?? '—'}</td>
+                    <td className="px-3 py-1.5 tabular-nums">
+                      {product.stockQuantity ?? (settings.defaultQty !== '' && settings.defaultQty != null ? settings.defaultQty : '—')}
+                    </td>
                     <td className="px-3 py-1.5 font-mono text-xs tracking-wide text-slate-500 dark:text-slate-400">
                       {product.asin}
                     </td>

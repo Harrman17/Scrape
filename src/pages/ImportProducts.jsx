@@ -5,6 +5,7 @@ function ImportProducts() {
   const [results, setResults] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const token = localStorage.getItem('authToken')
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -15,7 +16,10 @@ function ImportProducts() {
     try {
       const response = await fetch('http://localhost:5211/api/scrape', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           asins: asins
             .split(/\r?\n/)
@@ -29,7 +33,10 @@ function ImportProducts() {
         throw new Error(payload.error || 'Scraping failed')
       }
 
-      setResults(Array.isArray(payload) ? payload : [payload])
+      setResults(payload.saved || [])
+      if (payload.errors && payload.errors.length > 0) {
+        setError(`Imported ${payload.saved.length} products with ${payload.errors.length} errors`)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Scraping failed')
     } finally {
@@ -66,6 +73,50 @@ function ImportProducts() {
         </form>
 
         {error ? <p className="mt-4 text-red-700 dark:text-red-400">{error}</p> : null}
+
+        {results.length > 0 && (
+          <div className="mt-6">
+            <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Imported Products ({results.length})
+            </h2>
+            <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+              {results.map((product) => (
+                <div key={product.asin} className="rounded bg-white p-3 dark:bg-slate-700">
+                  <div className="flex items-start gap-3">
+                    {product.imageUrl && (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.asin}
+                        className="h-12 w-12 rounded object-contain"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <h3 className="line-clamp-2 font-medium text-slate-900 dark:text-slate-100">
+                        {product.title}
+                      </h3>
+                      <div className="mt-1 flex gap-4 text-sm text-slate-600 dark:text-slate-400">
+                        <span>
+                          Amazon: <span className="font-semibold">{product.currency}{product.amazonPrice ?? '—'}</span>
+                        </span>
+                        <span>
+                          Selling: <span className="font-semibold text-green-600 dark:text-green-400">
+                            {product.sellingPrice != null
+                              ? `${product.currency}${product.sellingPrice.toFixed(2)}`
+                              : '—'}
+                          </span>
+                        </span>
+                        <span>
+                          Qty: <span className="font-semibold">{product.qty}</span>
+                        </span>
+                        <span className="font-mono text-xs">{product.asin}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

@@ -52,8 +52,8 @@ function App() {
     return (
         <>
             <nav className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex gap-4 text-slate-700 dark:text-slate-200">
-                    <Link to="/">Home</Link>
+                <div className="flex gap-10 text-slate-700 dark:text-slate-200">
+                    <Link to="/">logo</Link>
                     <Link to="/import-products">
                         Import Products
                     </Link>
@@ -63,24 +63,10 @@ function App() {
                 </div>
                 <div className='flex items-center gap-3'>
                     <span className="text-sm text-slate-500 dark:text-slate-400">{user.name}</span>
-                    <button
-                        type="button"
-                        onClick={() => setIsDark((prev) => !prev)}
-                        className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                    >
-                        {isDark ? '☀️' : '🌙 '}
-                    </button>
                     <button className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
                         <Link to="/settings">
                             ⚙️
                         </Link>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                    >
-                        Sign out
                     </button>
                 </div>
             </nav>
@@ -89,7 +75,7 @@ function App() {
                 <Route path="/"  element={<Home />}/>
                 <Route path="/import-products" element={<ImportProducts />} />
                 <Route path="/inventory" element={<Inventory />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings" element={<Settings isDark={isDark} setIsDark={setIsDark} onLogout={handleLogout} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </>

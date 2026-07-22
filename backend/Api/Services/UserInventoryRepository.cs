@@ -36,9 +36,11 @@ public class UserInventoryRepository
                 i.last_scraped,
                 ui.qty,
                 ui.status,
-                ui.ebay_item_id
+                ui.ebay_item_id,
+                us.profit_markup
             FROM user_inventory ui
             INNER JOIN inventory i ON ui.inventory_id = i.id
+            INNER JOIN user_settings us ON us.user_id = ui.user_id
             WHERE ui.user_id = @userId
             ORDER BY ui.created_at DESC";
 
@@ -51,6 +53,14 @@ public class UserInventoryRepository
         while (await reader.ReadAsync())
         {
             var amazonPrice = reader.IsDBNull(6) ? (decimal?)null : reader.GetDecimal(6);
+            var profitMarkup = reader.GetDecimal(14);
+            
+            // Calculate selling price: AmazonPrice × (1 + ProfitMarkup/100)
+            decimal? sellingPrice = null;
+            if (amazonPrice.HasValue)
+            {
+                sellingPrice = Math.Round(amazonPrice.Value * (1 + profitMarkup / 100), 2);
+            }
             
             items.Add(new UserInventoryDto
             {
@@ -68,6 +78,7 @@ public class UserInventoryRepository
                 Qty = reader.GetInt32(11),
                 Status = reader.GetString(12),
                 EbayItemId = reader.IsDBNull(13) ? null : reader.GetString(13),
+                SellingPrice = sellingPrice,
             });
         }
         return items;
@@ -183,6 +194,23 @@ public class UserInventoryRepository
         await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("id", id);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>
+    /// Update all inventory quantities for a user (applies qty setting to existing items).
+    /// </summary>
+    public async Task UpdateAllQuantitiesAsync(long userId, int newQty)
+    {
+        const string sql = @"
+            UPDATE user_inventory
+            SET qty = @qty, updated_at = NOW()
+            WHERE user_id = @userId";
+
+        await using var conn = await _dataSource.OpenConnectionAsync();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("userId", userId);
+        cmd.Parameters.AddWithValue("qty", newQty);
         await cmd.ExecuteNonQueryAsync();
     }
 }

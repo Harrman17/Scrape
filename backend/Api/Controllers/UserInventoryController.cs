@@ -99,6 +99,8 @@ public class InventoryController : ControllerBase
 
     /// <summary>
     /// Update the current user's settings.
+    /// Also applies qty changes to all existing inventory items.
+    /// blockProductsUnder and autoRemoveBrand only apply to future scrapes.
     /// </summary>
     [HttpPut("settings")]
     public async Task<ActionResult<UserSettingsDto>> UpdateSettings([FromBody] UpdateUserSettingsRequest request)
@@ -106,6 +108,9 @@ public class InventoryController : ControllerBase
         var userId = GetUserId();
         if (userId == null)
             return Unauthorized(new { error = "User ID not found in token." });
+
+        // Get current settings to check if qty changed
+        var currentSettings = await _userSettings.GetAsync(userId.Value);
 
         var settings = await _userSettings.UpdateAsync(
             userId.Value,
@@ -115,6 +120,12 @@ public class InventoryController : ControllerBase
             request.ItemLocationPostcode,
             request.ItemLocationCity,
             request.AutoRemoveBrand);
+
+        // If qty changed, apply it to all existing inventory items
+        if (currentSettings != null && currentSettings.Qty != request.Qty)
+        {
+            await _userInventory.UpdateAllQuantitiesAsync(userId.Value, request.Qty);
+        }
 
         return Ok(new UserSettingsDto
         {

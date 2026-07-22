@@ -130,7 +130,7 @@ function Settings() {
               Example: 20% markup means selling price = Amazon price × 1.2
             </p>
           </div>
-
+          <hr />
           {/* Block Products Under */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -148,12 +148,13 @@ function Settings() {
               Products below this Amazon price will not be imported
             </p>
           </div>
-
+           <hr />
           {/* Item Location */}
+          <h3>Item location</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Item Location - Postcode
+               Postcode
               </label>
               <input
                 type="text"
@@ -165,7 +166,7 @@ function Settings() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Item Location - City
+                City
               </label>
               <input
                 type="text"

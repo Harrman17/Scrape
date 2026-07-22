@@ -115,7 +115,6 @@ function Inventory() {
         {/* Header row */}
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold dark:text-slate-100">
-            My Inventory
             {products.length > 0 && (
               <span className="ml-2 text-sm font-normal text-slate-400">{products.length} products</span>
             )}
@@ -220,10 +219,10 @@ function Inventory() {
                       <span className="line-clamp-2 leading-snug">{product.title}</span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-1.5 tabular-nums">
-                      {product.currency || '£'}{product.amazonPrice ?? '—'}
+                      £{product.amazonPrice ?? '—'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-1.5 tabular-nums font-medium">
-                      {product.sellingPrice != null ? `${product.currency || '£'}${product.sellingPrice.toFixed(2)}` : '—'}
+                      £{product.sellingPrice ?? '—'}
                     </td>
                     <td className="px-3 py-1.5 tabular-nums">{product.qty}</td>
                     <td className="px-3 py-1.5 font-mono text-xs tracking-wide text-slate-500 dark:text-slate-400">

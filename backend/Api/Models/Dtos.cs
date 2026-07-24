@@ -22,7 +22,7 @@ public class UserInventoryDto
     
     // User-specific data
     public int Qty { get; set; }
-    public string Status { get; set; } = "";
+    public ProductStatus Status { get; set; }
     public string? EbayItemId { get; set; }
     
     // Calculated field

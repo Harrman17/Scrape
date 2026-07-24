@@ -234,11 +234,15 @@ function Inventory() {
                     <td className="px-3 py-1.5">
                       <span
                         className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-                          product.status === 'ACTIVE'
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                            : product.status === 'PENDING'
-                              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
-                              : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                          product.status === 'Unpaired'
+                            ? 'bg-black text-white'
+                            : product.status === 'Active'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                              : product.status === 'Ended on eBay'
+                                ? 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                : product.status === 'Issues'
+                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                                  : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                         }`}
                       >
                         {product.status}

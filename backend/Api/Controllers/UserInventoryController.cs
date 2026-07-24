@@ -151,7 +151,7 @@ public class InventoryController : ControllerBase
 public class UpdateInventoryRequest
 {
     public int Qty { get; set; }
-    public string Status { get; set; } = "PENDING";
+    public ProductStatus Status { get; set; } = ProductStatus.Unpaired;
     public string? EbayItemId { get; set; }
 }
 

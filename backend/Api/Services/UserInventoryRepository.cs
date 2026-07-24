@@ -17,6 +17,29 @@ public class UserInventoryRepository
     }
 
     /// <summary>
+    /// Convert ProductStatus enum to database string representation.
+    /// </summary>
+    private static string StatusToString(ProductStatus status) => status switch
+    {
+        ProductStatus.Unpaired => "Unpaired",
+        ProductStatus.Active => "Active",
+        ProductStatus.EndedOnEbay => "Ended on eBay",
+        ProductStatus.Issues => "Issues",
+        _ => "Unpaired"
+    };
+
+    /// <summary>
+    /// Convert database string representation to ProductStatus enum.
+    /// </summary>
+    private static ProductStatus StringToStatus(string status) => status switch
+    {
+        "Active" => ProductStatus.Active,
+        "Ended on eBay" => ProductStatus.EndedOnEbay,
+        "Issues" => ProductStatus.Issues,
+        _ => ProductStatus.Unpaired // Default for "Unpaired" or any unknown values
+    };
+
+    /// <summary>
     /// Get all inventory items for a specific user with full details.
     /// </summary>
     public async Task<List<UserInventoryDto>> GetUserInventoryAsync(long userId)
@@ -76,7 +99,7 @@ public class UserInventoryRepository
                 IsActive = reader.GetBoolean(9),
                 LastScraped = reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
                 Qty = reader.GetInt32(11),
-                Status = reader.GetString(12),
+                Status = StringToStatus(reader.GetString(12)),
                 EbayItemId = reader.IsDBNull(13) ? null : reader.GetString(13),
                 SellingPrice = sellingPrice,
             });
@@ -109,7 +132,7 @@ public class UserInventoryRepository
             UserId = reader.GetInt64(1),
             InventoryId = reader.GetInt64(2),
             Qty = reader.GetInt32(3),
-            Status = reader.GetString(4),
+            Status = StringToStatus(reader.GetString(4)),
             EbayItemId = reader.IsDBNull(5) ? null : reader.GetString(5),
             CreatedAt = reader.IsDBNull(6) ? null : reader.GetFieldValue<DateTimeOffset>(6),
             UpdatedAt = reader.IsDBNull(7) ? null : reader.GetFieldValue<DateTimeOffset>(7),
@@ -123,7 +146,7 @@ public class UserInventoryRepository
     {
         const string sql = @"
             INSERT INTO user_inventory (user_id, inventory_id, qty, status, created_at, updated_at)
-            VALUES (@userId, @inventoryId, @qty, 'PENDING', NOW(), NOW())
+            VALUES (@userId, @inventoryId, @qty, @status, NOW(), NOW())
             RETURNING id, user_id, inventory_id, qty, status, ebay_item_id, created_at, updated_at";
 
         await using var conn = await _dataSource.OpenConnectionAsync();
@@ -131,6 +154,7 @@ public class UserInventoryRepository
         cmd.Parameters.AddWithValue("userId", userId);
         cmd.Parameters.AddWithValue("inventoryId", inventoryId);
         cmd.Parameters.AddWithValue("qty", qty);
+        cmd.Parameters.AddWithValue("status", StatusToString(ProductStatus.Unpaired));
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -141,7 +165,7 @@ public class UserInventoryRepository
             UserId = reader.GetInt64(1),
             InventoryId = reader.GetInt64(2),
             Qty = reader.GetInt32(3),
-            Status = reader.GetString(4),
+            Status = StringToStatus(reader.GetString(4)),
             EbayItemId = reader.IsDBNull(5) ? null : reader.GetString(5),
             CreatedAt = reader.IsDBNull(6) ? null : reader.GetFieldValue<DateTimeOffset>(6),
             UpdatedAt = reader.IsDBNull(7) ? null : reader.GetFieldValue<DateTimeOffset>(7),
@@ -151,7 +175,7 @@ public class UserInventoryRepository
     /// <summary>
     /// Update an existing user inventory entry.
     /// </summary>
-    public async Task<UserInventory> UpdateAsync(long id, int qty, string status, string? ebayItemId)
+    public async Task<UserInventory> UpdateAsync(long id, int qty, ProductStatus status, string? ebayItemId)
     {
         const string sql = @"
             UPDATE user_inventory
@@ -163,7 +187,7 @@ public class UserInventoryRepository
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("id", id);
         cmd.Parameters.AddWithValue("qty", qty);
-        cmd.Parameters.AddWithValue("status", status);
+        cmd.Parameters.AddWithValue("status", StatusToString(status));
         cmd.Parameters.AddWithValue("ebayItemId", (object?)ebayItemId ?? DBNull.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -175,7 +199,7 @@ public class UserInventoryRepository
             UserId = reader.GetInt64(1),
             InventoryId = reader.GetInt64(2),
             Qty = reader.GetInt32(3),
-            Status = reader.GetString(4),
+            Status = StringToStatus(reader.GetString(4)),
             EbayItemId = reader.IsDBNull(5) ? null : reader.GetString(5),
             CreatedAt = reader.IsDBNull(6) ? null : reader.GetFieldValue<DateTimeOffset>(6),
             UpdatedAt = reader.IsDBNull(7) ? null : reader.GetFieldValue<DateTimeOffset>(7),

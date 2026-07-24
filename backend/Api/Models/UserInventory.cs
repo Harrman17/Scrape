@@ -10,7 +10,7 @@ public class UserInventory
     public long UserId { get; set; }
     public long InventoryId { get; set; }
     public int Qty { get; set; }
-    public string Status { get; set; } = "PENDING"; // PENDING, ACTIVE, DELISTED
+    public ProductStatus Status { get; set; } = ProductStatus.Unpaired;
     public string? EbayItemId { get; set; }
     public DateTimeOffset? CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }

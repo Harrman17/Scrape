@@ -56,6 +56,9 @@ public class UserInventoryRepository
                 i.currency,
                 i.in_stock,
                 i.is_active,
+                i.description,
+                i.ebay_category,
+                i.ebay_category_name,
                 i.last_scraped,
                 ui.qty,
                 ui.status,
@@ -76,7 +79,7 @@ public class UserInventoryRepository
         while (await reader.ReadAsync())
         {
             var amazonPrice = reader.IsDBNull(6) ? (decimal?)null : reader.GetDecimal(6);
-            var profitMarkup = reader.GetDecimal(14);
+            var profitMarkup = reader.GetDecimal(17);
             
             // Calculate selling price: AmazonPrice × (1 + ProfitMarkup/100)
             decimal? sellingPrice = null;
@@ -97,10 +100,13 @@ public class UserInventoryRepository
                 Currency = reader.IsDBNull(7) ? null : reader.GetString(7).Trim(),
                 InStock = reader.GetBoolean(8),
                 IsActive = reader.GetBoolean(9),
-                LastScraped = reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
-                Qty = reader.GetInt32(11),
-                Status = StringToStatus(reader.GetString(12)),
-                EbayItemId = reader.IsDBNull(13) ? null : reader.GetString(13),
+                Description = reader.IsDBNull(10) ? null : reader.GetString(10),
+                EbayCategory = reader.IsDBNull(11) ? null : reader.GetString(11),
+                EbayCategoryName = reader.IsDBNull(12) ? null : reader.GetString(12),
+                LastScraped = reader.IsDBNull(13) ? null : reader.GetFieldValue<DateTimeOffset>(13),
+                Qty = reader.GetInt32(14),
+                Status = StringToStatus(reader.GetString(15)),
+                EbayItemId = reader.IsDBNull(16) ? null : reader.GetString(16),
                 SellingPrice = sellingPrice,
             });
         }

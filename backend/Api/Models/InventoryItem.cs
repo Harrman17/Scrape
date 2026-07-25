@@ -15,6 +15,9 @@ public class Inventory
     public string? Currency { get; set; }
     public bool InStock { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? Description { get; set; }
+    public string? EbayCategory { get; set; }
+    public string? EbayCategoryName { get; set; }
     public DateTimeOffset? LastScraped { get; set; }
     public DateTimeOffset? CreatedAt { get; set; }
 }

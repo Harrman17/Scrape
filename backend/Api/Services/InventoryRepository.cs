@@ -20,7 +20,8 @@ public class InventoryRepository
     {
         const string sql = @"
             SELECT id, asin, title, image_url, amazon_url, amazon_price,
-                   currency, in_stock, is_active, last_scraped, created_at
+                   currency, in_stock, is_active, description, ebay_category, ebay_category_name,
+                   last_scraped, created_at
             FROM inventory
             ORDER BY created_at DESC";
 
@@ -42,8 +43,11 @@ public class InventoryRepository
                 Currency    = reader.IsDBNull(6) ? null : reader.GetString(6).Trim(),
                 InStock     = reader.GetBoolean(7),
                 IsActive    = reader.GetBoolean(8),
-                LastScraped = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
-                CreatedAt   = reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
+                Description       = reader.IsDBNull(9)  ? null : reader.GetString(9),
+                EbayCategory      = reader.IsDBNull(10) ? null : reader.GetString(10),
+                EbayCategoryName  = reader.IsDBNull(11) ? null : reader.GetString(11),
+                LastScraped = reader.IsDBNull(12) ? null : reader.GetFieldValue<DateTimeOffset>(12),
+                CreatedAt   = reader.IsDBNull(13) ? null : reader.GetFieldValue<DateTimeOffset>(13),
             });
         }
         return items;
@@ -53,7 +57,8 @@ public class InventoryRepository
     {
         const string sql = @"
             SELECT id, asin, title, image_url, amazon_url, amazon_price,
-                   currency, in_stock, is_active, last_scraped, created_at
+                   currency, in_stock, is_active, description, ebay_category, ebay_category_name,
+                   last_scraped, created_at
             FROM inventory
             WHERE asin = @asin
             LIMIT 1";
@@ -75,16 +80,19 @@ public class InventoryRepository
             AmazonPrice = reader.IsDBNull(5) ? null : reader.GetDecimal(5),
             Currency    = reader.IsDBNull(6) ? null : reader.GetString(6).Trim(),
             InStock     = reader.GetBoolean(7),
-            LastScraped = reader.IsDBNull(8) ? null : reader.GetFieldValue<DateTimeOffset>(8),
-            CreatedAt   = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
+            Description       = reader.IsDBNull(9)  ? null : reader.GetString(9),
+            EbayCategory      = reader.IsDBNull(10) ? null : reader.GetString(10),
+            EbayCategoryName  = reader.IsDBNull(11) ? null : reader.GetString(11),
+            LastScraped = reader.IsDBNull(12) ? null : reader.GetFieldValue<DateTimeOffset>(12),
+            CreatedAt   = reader.IsDBNull(13) ? null : reader.GetFieldValue<DateTimeOffset>(13),
         };
     }
 
     public async Task<Inventory> UpsertAsync(ScrapedProduct product)
     {
         const string sql = @"
-            INSERT INTO inventory (asin, title, image_url, amazon_url, amazon_price, currency, in_stock, is_active, last_scraped)
-            VALUES (@asin, @title, @imageUrl, @amazonUrl, @amazonPrice, @currency, @inStock, true, NOW())
+            INSERT INTO inventory (asin, title, image_url, amazon_url, amazon_price, currency, in_stock, is_active, description, last_scraped)
+            VALUES (@asin, @title, @imageUrl, @amazonUrl, @amazonPrice, @currency, @inStock, true, @description, NOW())
             ON CONFLICT (asin)
             DO UPDATE SET
                 title        = EXCLUDED.title,
@@ -94,9 +102,11 @@ public class InventoryRepository
                 currency     = EXCLUDED.currency,
                 in_stock     = EXCLUDED.in_stock,
                 is_active    = EXCLUDED.is_active,
+                description  = EXCLUDED.description,
                 last_scraped = NOW()
             RETURNING id, asin, title, image_url, amazon_url, amazon_price,
-                      currency, in_stock, is_active, last_scraped, created_at";
+                      currency, in_stock, is_active, description, ebay_category, ebay_category_name,
+                      last_scraped, created_at";
 
         await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = new NpgsqlCommand(sql, conn);
@@ -108,6 +118,7 @@ public class InventoryRepository
         cmd.Parameters.AddWithValue("amazonPrice", (object?)product.AmazonPrice ?? DBNull.Value);
         cmd.Parameters.AddWithValue("currency", product.Currency);
         cmd.Parameters.AddWithValue("inStock", product.InStock);
+        cmd.Parameters.AddWithValue("description", (object?)product.Description ?? DBNull.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -123,8 +134,26 @@ public class InventoryRepository
             Currency    = reader.IsDBNull(6) ? null : reader.GetString(6).Trim(),
             InStock     = reader.GetBoolean(7),
             IsActive    = reader.GetBoolean(8),
-            LastScraped = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
-            CreatedAt   = reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
+            Description       = reader.IsDBNull(9)  ? null : reader.GetString(9),
+            EbayCategory      = reader.IsDBNull(10) ? null : reader.GetString(10),
+            EbayCategoryName  = reader.IsDBNull(11) ? null : reader.GetString(11),
+            LastScraped = reader.IsDBNull(12) ? null : reader.GetFieldValue<DateTimeOffset>(12),
+            CreatedAt   = reader.IsDBNull(13) ? null : reader.GetFieldValue<DateTimeOffset>(13),
         };
+    }
+
+    public async Task UpdateEbayCategoryAsync(long id, string categoryId, string categoryName)
+    {
+        const string sql = @"
+            UPDATE inventory
+            SET ebay_category = @categoryId, ebay_category_name = @categoryName
+            WHERE id = @id";
+
+        await using var conn = await _dataSource.OpenConnectionAsync();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("id", id);
+        cmd.Parameters.AddWithValue("categoryId", categoryId);
+        cmd.Parameters.AddWithValue("categoryName", categoryName);
+        await cmd.ExecuteNonQueryAsync();
     }
 }

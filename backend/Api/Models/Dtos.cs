@@ -18,6 +18,9 @@ public class UserInventoryDto
     public string? Currency { get; set; }
     public bool InStock { get; set; }
     public bool IsActive { get; set; }
+    public string? Description { get; set; }
+    public string? EbayCategory { get; set; }
+    public string? EbayCategoryName { get; set; }
     public DateTimeOffset? LastScraped { get; set; }
     
     // User-specific data

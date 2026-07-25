@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { generateEbayCsv } from '../utils/generateEbayCsv'
 
 const PAGE_SIZE = 10
 
@@ -8,11 +9,13 @@ function Inventory() {
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [settings, setSettings] = useState({ itemLocationPostcode: '', itemLocationCity: '' })
 
   const token = localStorage.getItem('authToken')
 
   useEffect(() => {
     loadInventory()
+    loadSettings()
   }, [])
 
   async function loadInventory() {
@@ -31,6 +34,34 @@ function Inventory() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function loadSettings() {
+    try {
+      const response = await fetch('http://localhost:5211/api/inventory/settings', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!response.ok) return
+      const data = await response.json()
+      setSettings({
+        itemLocationPostcode: data.itemLocationPostcode || '',
+        itemLocationCity: data.itemLocationCity || '',
+      })
+    } catch {
+      // non-critical — CSV will just have a blank location
+    }
+  }
+
+  function handleExportCsv() {
+    const selected = products.filter((p) => selectedIds.includes(p.userInventoryId))
+    const csv = generateEbayCsv(selected, settings)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ebay-products-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE))
@@ -153,6 +184,14 @@ function Inventory() {
               className="cursor-pointer rounded-md bg-red-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Delete selected{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
+            </button>
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={selectedIds.length === 0}
+              className="cursor-pointer rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Product Creation CSV{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
             </button>
           </div>
         </div>

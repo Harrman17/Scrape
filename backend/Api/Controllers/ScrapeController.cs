@@ -17,17 +17,23 @@ public class ScrapeController : ControllerBase
     private readonly InventoryRepository _inventory;
     private readonly UserInventoryRepository _userInventory;
     private readonly UserSettingsRepository _userSettings;
+    private readonly ScrapingJobsRepository _scrapingJobs;
+    private readonly EbayCategoryService _ebayCategory;
 
     public ScrapeController(
         IConfiguration config,
         InventoryRepository inventory,
         UserInventoryRepository userInventory,
-        UserSettingsRepository userSettings)
+        UserSettingsRepository userSettings,
+        ScrapingJobsRepository scrapingJobs,
+        EbayCategoryService ebayCategory)
     {
         _config = config;
         _inventory = inventory;
         _userInventory = userInventory;
         _userSettings = userSettings;
+        _scrapingJobs = scrapingJobs;
+        _ebayCategory = ebayCategory;
     }
 
     /// <summary>
@@ -101,6 +107,9 @@ public class ScrapeController : ControllerBase
         if (scraped is null || scraped.Count == 0)
             return StatusCode(500, new { error = "No results returned from scraper." });
 
+        // Create a scraping job record
+        var job = await _scrapingJobs.CreateAsync(userId.Value, scraped.Count);
+
         // Get user settings to use as defaults
         var settings = await _userSettings.GetAsync(userId.Value);
         if (settings == null)
@@ -123,6 +132,18 @@ public class ScrapeController : ControllerBase
             {
                 // Upsert into global inventory table
                 var inventoryItem = await _inventory.UpsertAsync(product);
+
+                // Suggest eBay category if not already set
+                if (inventoryItem.EbayCategory == null)
+                {
+                    var (catId, catName) = await _ebayCategory.SuggestCategoryAsync(product.Title);
+                    if (catId != null)
+                    {
+                        await _inventory.UpdateEbayCategoryAsync(inventoryItem.Id, catId, catName!);
+                        inventoryItem.EbayCategory     = catId;
+                        inventoryItem.EbayCategoryName = catName;
+                    }
+                }
 
                 // Check if user already has this product
                 var existing = await _userInventory.GetAsync(userId.Value, inventoryItem.Id);
@@ -156,6 +177,9 @@ public class ScrapeController : ControllerBase
                     Status = userInv.Status,
                     EbayItemId = userInv.EbayItemId,
                     IsActive = inventoryItem.IsActive,
+                    Description = inventoryItem.Description,
+                    EbayCategory = inventoryItem.EbayCategory,
+                    EbayCategoryName = inventoryItem.EbayCategoryName,
                     SellingPrice = CalculateSellingPrice(inventoryItem.AmazonPrice, settings.ProfitMarkup),
                 };
 
@@ -166,6 +190,9 @@ public class ScrapeController : ControllerBase
                 errors.Add(new { product.Asin, error = ex.Message });
             }
         }
+
+        // Mark job complete
+        await _scrapingJobs.UpdateCompletedAsync(job.Id, saved.Count + errors.Count, saved.Count, errors.Count);
 
         if (errors.Count > 0 && saved.Count == 0)
             return StatusCode(500, new { error = "All products failed to import.", errors });

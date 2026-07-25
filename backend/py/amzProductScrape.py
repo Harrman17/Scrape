@@ -98,6 +98,25 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         if image_url:
             break
 
+    description = None
+    for selector in [
+        "#productDescription p",
+        "#productDescription",
+        "#feature-bullets ul",
+        "#aplus-feature-bullets .a-unordered-list",
+        "meta[name='description']",
+    ]:
+        if selector.startswith("meta"):
+            element = soup.select_one(selector)
+            if element is not None:
+                description = (element.get("content") or "").strip() or None
+        else:
+            element = soup.select_one(selector)
+            if element is not None:
+                description = element.get_text(" ", strip=True) or None
+        if description:
+            break
+
     # Availability
     in_stock = False
     availability_el = soup.select_one("#availability span, #availability")
@@ -118,6 +137,7 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         "price": price_text or "N/A",
         "amazon_price": parse_price_decimal(price_text),
         "image_url": image_url,
+        "description": description,
         "in_stock": in_stock,
         "currency": "GBP",
         "asin": asin or "",

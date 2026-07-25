@@ -35,6 +35,11 @@ builder.Services.AddScoped<InventoryRepository>();
 builder.Services.AddScoped<UsersRepository>();
 builder.Services.AddScoped<UserInventoryRepository>();
 builder.Services.AddScoped<UserSettingsRepository>();
+builder.Services.AddScoped<ScrapingJobsRepository>();
+
+// eBay category service (singleton so the OAuth token is cached across requests)
+builder.Services.AddHttpClient("ebay");
+builder.Services.AddSingleton<EbayCategoryService>();
 
 // Configure JWT Authentication
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") 

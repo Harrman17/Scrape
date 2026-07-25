@@ -25,6 +25,9 @@ public class ScrapedProduct
     [JsonPropertyName("in_stock")]
     public bool InStock { get; set; }
 
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
     [JsonPropertyName("error")]
     public string? Error { get; set; }
 }

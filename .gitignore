@@ -25,3 +25,8 @@ dist-ssr
 
 
 appsettings.Development.json
+backend/Api/appsettings.Development.json
+
+# .NET build outputs — never commit these
+**/bin/
+**/obj/

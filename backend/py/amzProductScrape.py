@@ -60,6 +60,10 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         if title:
             break
 
+    # eBay listing titles are capped at 80 characters — truncate at word boundary
+    if title and len(title) > 80:
+        title = title[:80].rsplit(" ", 1)[0].rstrip()
+
     price_text = None
     for selector in [
         "#priceblock_ourprice",

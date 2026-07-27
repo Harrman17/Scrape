@@ -177,7 +177,7 @@ function buildDescriptionHtml(title, description) {
     `<meta name='viewport' content='width=device-width, initial-scale=1'>` +
     `<style type='text/css'>` +
     `body{font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#333;margin:0;padding:0;}` +
-    `.header{background:#efaf00;padding:40px 20px;text-align:center;}` +
+    `.header{background:##969696;padding:40px 20px;text-align:center;}` +
     `.header h1{color:#fff;font-size:26px;margin:0;}` +
     `.container{max-width:840px;margin:0 auto;padding:30px 20px;}` +
     `h3{font-size:20px;color:#333;margin-top:36px;}` +

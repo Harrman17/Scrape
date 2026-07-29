@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { generateEbayCsv } from '../utils/generateEbayCsv'
+import Loading from '../components/Loading'
 
 const PAGE_SIZE = 10
 
@@ -132,7 +133,7 @@ function Inventory() {
   if (loading) {
     return (
       <section className="grid min-h-screen place-items-center p-8 dark:bg-slate-950">
-        <p className="text-slate-600 dark:text-slate-400">Loading inventory...</p>
+        <Loading />
       </section>
     )
   }
@@ -224,7 +225,7 @@ function Inventory() {
               {products.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
-                    No products to display yet. <a href="/import" className="text-blue-600 hover:underline">Import some products</a>.
+                    No products to display yet. <a href="/import-products" className="text-blue-600 hover:underline">Import some products</a>.
                   </td>
                 </tr>
               ) : (

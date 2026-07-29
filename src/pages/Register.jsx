@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import Loading from '../components/Loading'
 
 function Register({ onLogin }) {
   const [name, setName] = useState('')
@@ -116,6 +117,11 @@ function Register({ onLogin }) {
             </p>
           )}
 
+          {loading && (
+            <div className="flex justify-center py-4">
+              <Loading message="Creating account..." />
+            </div>
+          )}
           <button
             type="submit"
             disabled={loading}

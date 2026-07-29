@@ -102,6 +102,32 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         if image_url:
             break
 
+    # Collect all gallery images
+    image_urls = []
+    if image_url:
+        image_urls.append(image_url)
+    
+    # Find additional gallery images from alt images section
+    for img_elem in soup.select("#altImages img"):
+        alt_image_url = (
+            img_elem.get("data-old-hires")
+            or img_elem.get("src")
+            or ""
+        ).strip()
+        if alt_image_url and alt_image_url not in image_urls:
+            image_urls.append(alt_image_url)
+    
+    # Fallback: check for images in the main image container
+    if not image_urls:
+        for img_elem in soup.select("#imgTagWrapperId img, #main-image img"):
+            fallback_url = (
+                img_elem.get("data-old-hires")
+                or img_elem.get("src")
+                or ""
+            ).strip()
+            if fallback_url and fallback_url not in image_urls:
+                image_urls.append(fallback_url)
+
     description = None
     for selector in [
         "#productDescription p",
@@ -141,6 +167,7 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         "price": price_text or "N/A",
         "amazon_price": parse_price_decimal(price_text),
         "image_url": image_url,
+        "image_urls": image_urls,
         "description": description,
         "in_stock": in_stock,
         "currency": "GBP",

@@ -13,6 +13,9 @@ public class ScrapedProduct
     [JsonPropertyName("image_url")]
     public string? ImageUrl { get; set; }
 
+    [JsonPropertyName("image_urls")]
+    public List<string> ImageUrls { get; set; } = new();
+
     [JsonPropertyName("url")]
     public string Url { get; set; } = "";
 

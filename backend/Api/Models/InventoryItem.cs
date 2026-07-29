@@ -10,6 +10,7 @@ public class Inventory
     public string Asin { get; set; } = "";
     public string Title { get; set; } = "";
     public string? ImageUrl { get; set; }
+    public List<string> ImageUrls { get; set; } = new();
     public string AmazonUrl { get; set; } = "";
     public decimal? AmazonPrice { get; set; }
     public string? Currency { get; set; }

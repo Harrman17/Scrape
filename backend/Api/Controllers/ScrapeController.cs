@@ -168,6 +168,7 @@ public class ScrapeController : ControllerBase
                     Asin = inventoryItem.Asin,
                     Title = inventoryItem.Title,
                     ImageUrl = inventoryItem.ImageUrl,
+                    ImageUrls = inventoryItem.ImageUrls,
                     AmazonUrl = inventoryItem.AmazonUrl,
                     AmazonPrice = inventoryItem.AmazonPrice,
                     Currency = inventoryItem.Currency,

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import Loading from '../components/Loading'
 
 function ImportProducts() {
   const [asins, setAsins] = useState('')
@@ -77,6 +78,11 @@ function ImportProducts() {
             aria-label="Amazon ASINs"
           />
 
+          {loading && (
+            <div className="flex justify-center py-4">
+              <Loading message="Scraping products..." />
+            </div>
+          )}
           <button
             type="submit"
             disabled={loading}

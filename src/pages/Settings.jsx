@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Loading from '../components/Loading'
 
 function Settings({ isDark, setIsDark, onLogout }) {
   const navigate = useNavigate()
@@ -80,7 +81,7 @@ function Settings({ isDark, setIsDark, onLogout }) {
   if (loading) {
     return (
       <section className="grid min-h-screen place-items-center p-8 dark:bg-slate-950">
-        <p className="text-slate-600 dark:text-slate-400">Loading settings...</p>
+        <Loading message="Loading settings..." />
       </section>
     )
   }
@@ -232,7 +233,7 @@ function Settings({ isDark, setIsDark, onLogout }) {
 
           {loading && (
             <div className="rounded-lg border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-sm text-slate-600 dark:text-slate-400">Loading settings...</p>
+              <Loading message="Loading settings..." />
             </div>
           )}
       </div>

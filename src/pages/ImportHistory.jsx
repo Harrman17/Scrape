@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Loading from '../components/Loading'
 
 function ImportHistory() {
   const [jobs, setJobs] = useState([])
@@ -48,7 +49,9 @@ function ImportHistory() {
         )}
 
         {loading ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+          <div className="flex justify-center py-12">
+            <Loading />
+          </div>
         ) : jobs.length === 0 ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">No import jobs yet.</p>
         ) : (

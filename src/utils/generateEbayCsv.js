@@ -69,76 +69,178 @@ export function generateEbayCsv(products, settings) {
     'OutOfStockControl',
     'GlobalShipping',
     'GetItFast',
+    'C:Type',
+    'C:Size',
+    'C:Colour',
+    'C:Product',
+    'C:Department',
+    'C:Item Length',
+    'C:Material',
+    'C:Item Width',
+    'C:Wireless Technology',
+    'C:Storage Capacity',
+    'C:Screen Size',
+    'C:Number of Earpieces',
+    'C:Microphone Type',
+    'C:Memory Card(s) Supported',
+    'C:Items Included',
+    'C:Compatible Brand',
+    'C:Compatible Model',
+    'C:Chipset/GPU Model',
+    'C:Chipset Manufacturer',
+    'C:Case Size',
+    'C:Band Material',
+    'C:EAN',
+    'C:Connectivity',
+    'C:Format',
+    'C:Model',
+    'C:Sport/Activity',
+    'C:Part Type',
+    'C:ISBN',
+    'C:Manufacturer Part Number',
+    'C:Height',
+    'C:Form Factor',
+    'C:Power Source',
+    'C:Processor',
     'VATPercent',
   ]
 
   const rows = products.map((product) => {
-    const description = buildDescriptionHtml(product.title, product.description)
+    // Build description HTML with features
+    const description = buildDescriptionHtml(
+      product.title, 
+      product.description,
+      product.features || []
+    )
+
+    // Handle multiple images - join with " | " separator (space-pipe-space)
+    const imageUrls = [product.imageUrl, ...(product.imageUrls || [])]
+      .filter(Boolean)
+      .filter((url, index, arr) => arr.indexOf(url) === index)
+    
+    const picUrlField = imageUrls.join(' | ')
+
+    const metadata = inferProductMetadata(product)
+    const quantity = String(product.qty || 3)
+    const startPrice = product.sellingPrice != null
+      ? String(product.sellingPrice)
+      : (product.amazonPrice != null ? String(product.amazonPrice) : '')
+
+    // Extract brand, MPN, model from product or metadata
+    const brand = product.brand || metadata.brand || 'Does Not Apply'
+    const mpn = product.mpn || metadata.mpn || 'Does Not Apply'
+    const model = product.model || metadata.model || 'Does Not Apply'
+    const color = product.color || metadata.color || 'Does Not Apply'
+    const size = product.size || metadata.size || 'Does Not Apply'
+    const ean = product.ean || 'Does Not Apply'
+    const upc = product.upc || 'Does Not Apply'
+    const isbn = product.isbn || 'Does Not Apply'
+    const height = product.height || metadata.height || ''
+    const width = product.width || metadata.width || ''
+    const length = product.length || metadata.length || ''
 
     const fields = [
       'Add',
-      product.ebayCategory ?? '',   // *Category — populated automatically from eBay API
-      product.asin,
-      product.title,
-      '',                           // Subtitle
+      product.ebayCategory ?? '',
+      product.asin ?? '',
+      product.title ?? '',
+      '',
       description,
-      '1000',                       // *ConditionID — New
-      product.imageUrl ?? '',
-      String(product.qty),
+      '1000',
+      picUrlField,
+      quantity,
       'FixedPrice',
-      product.sellingPrice != null ? String(product.sellingPrice) : '',
-      '',                           // SaleTemplateName
-      'Does Not Apply',             // Product:UPC
-      'Does Not Apply',             // Product:ISBN
-      'Does Not Apply',             // Product:EAN
-      'Does Not Apply',             // Product:MPN
-      'Does Not Apply',             // C:MPN
-      'Does Not Apply',             // Product:Brand
-      'Does Not Apply',             // C:Brand
-      '1',                          // Product:IncludePrefilledItemInformation
-      '1',                          // Product:IncludeStockPhotoURL
-      '0',                          // Product:UseStockPhotoURLAsGallery
-      '0',                          // Product:ReturnSearchResultsOnDuplicates
+      startPrice,
+      '',
+      upc,
+      isbn,
+      ean,
+      mpn,
+      mpn,
+      brand,
+      brand,
+      '1',
+      '1',
+      '0',
+      '0',
       'GBP',
       'GTC',
-      '1',                          // ImmediatePayRequired
-      '0',                          // ClickAndCollect
-      '0',                          // CashOnPickup
-      '0',                          // CCAccepted
-      '0',                          // MOCashiers
-      '0',                          // PaymentSeeDescription
-      '1',                          // PaymentStatus
-      '0',                          // HolidayReturns
-      '1',                          // PayPalAccepted
+      '1',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+      '1',
+      '0',
+      '1',
       location,
-      '',                           // PayPalEmailAddress
-      '0',                          // PayUponPickup
-      '0',                          // PersonalCheck
-      '1',                          // *DispatchTimeMax
-      '',                           // PaymentInstructions
+      '',
+      '0',
+      '0',
+      '1',
+      '',
       'ReturnsAccepted',
       'Days_30',
       'Buyer',
-      '',                           // StoreCategory
-      '',                           // StoreCategory2
-      '',                           // Relationship
-      '',                           // RelationshipDetails
+      '',
+      '',
+      '',
+      '',
       'Flat',
       'UK_OtherCourier48',
-      '',                           // ShippingService-1:Cost (free)
-      '1',                          // ShippingService-1:FreeShipping
-      '1',                          // ShippingService-1:Priority
+      '',
+      '1',
+      '1',
       'UK_OtherCourier24',
-      '4.99',                       // ShippingService-2:Cost
-      '0',                          // ShippingService-2:FreeShipping
-      '2',                          // ShippingService-2:Priority
-      'TRUE',                       // OutOfStockControl
-      '1',                          // GlobalShipping
-      '1',                          // GetItFast
-      '0',                          // VATPercent
+      '4.99',
+      '0',
+      '2',
+      'TRUE',
+      '1',
+      '1',
+      metadata.productType || 'Does Not Apply',
+      size,
+      color,
+      'Does Not Apply',
+      metadata.department || 'Does Not Apply',
+      length,
+      'Does Not Apply',
+      width,
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      ean,
+      'Does Not Apply',
+      'Does Not Apply',
+      model,
+      'Does Not Apply',
+      'Does Not Apply',
+      isbn,
+      mpn,
+      height,
+      'Does Not Apply',
+      'Does Not Apply',
+      'Does Not Apply',
+      '0',
     ]
 
-    return fields.map(csvEscape).join(',')
+    const normalizedFields = fields.slice(0, headers.length)
+    const paddedFields = normalizedFields.concat(
+      Array(Math.max(0, headers.length - normalizedFields.length)).fill('')
+    )
+
+    return paddedFields.map(csvEscape).join(',')
   })
 
   return [headers.map(csvEscape).join(','), ...rows].join('\r\n')
@@ -149,24 +251,76 @@ export function generateEbayCsv(products, settings) {
  */
 function csvEscape(value) {
   const str = String(value ?? '')
-  // Always quote — simplest safe approach
   return '"' + str.replace(/"/g, '""') + '"'
+}
+
+function inferProductMetadata(product) {
+  const title = String(product?.title ?? '')
+  const description = String(product?.description ?? '')
+  const text = `${title} ${description}`.trim()
+
+  return {
+    brand: product?.brand || firstMatch(text, [
+      /brand\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)/i,
+      /manufacturer\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)/i,
+    ]),
+    mpn: product?.mpn || firstMatch(text, [
+      /part\s+number\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)/i,
+      /mpn\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)/i,
+      /manufacturer\s+part\s+number\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)/i,
+    ]),
+    model: product?.model || firstMatch(text, [
+      /model\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)/i,
+    ]),
+    color: product?.color || firstMatch(text, [
+      /\b(black|white|blue|red|green|silver|gold|grey|gray|pink|purple|orange|yellow|brown)\b/i,
+    ]),
+    size: product?.size || firstMatch(text, [
+      /\b(\d+(?:\.\d+)?(?:cm|mm|in|inch|inches|kg|g|lb|lbs|x\d+(?:cm|mm|in|inch|inches)))\b/i,
+    ]),
+    productType: product?.productType || firstMatch(text, [
+      /\btype\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)/i,
+      /\bcategory\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)/i,
+    ]),
+    department: product?.department || firstMatch(text, [
+      /\bdepartment\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)/i,
+    ]),
+    height: product?.height || '',
+    width: product?.width || '',
+    length: product?.length || '',
+  }
+}
+
+function firstMatch(text, patterns) {
+  for (const pattern of patterns) {
+    const match = text.match(pattern)
+    if (match && match[1]) {
+      return match[1].trim()
+    }
+  }
+  return ''
 }
 
 /**
  * Builds the eBay HTML description from the product title and raw description text.
  * Uses single-quoted HTML attributes to avoid CSV escaping issues.
+ * Matches the Dilato template format with features as bullet points.
  */
-function buildDescriptionHtml(title, description) {
-  // Sanitise inputs: strip double quotes so they don't break CSV quoting
+function buildDescriptionHtml(title, description, features = []) {
   const safeTitle = (title ?? '').replace(/"/g, '&quot;')
   const safeDesc = description
     ? description.replace(/"/g, '&quot;').replace(/\n/g, '<br/>')
     : ''
 
-  const descBlock = safeDesc
-    ? `<p>${safeDesc}</p>`
+  // Build features list if available
+  const featuresHtml = features.length > 0
+    ? `<br/><strong>Features: </strong><br/>` + 
+      features.map(f => `<li>${f.replace(/"/g, '&quot;')}</li>`).join('')
     : ''
+
+  const descBlock = safeDesc
+    ? `<p>${safeDesc}${featuresHtml}</p>`
+    : (featuresHtml ? `<p>${featuresHtml}</p>` : '')
 
   return (
     `<!DOCTYPE html>` +
@@ -175,27 +329,49 @@ function buildDescriptionHtml(title, description) {
     `<meta charset='utf-8'>` +
     `<meta http-equiv='X-UA-Compatible' content='IE=edge'>` +
     `<meta name='viewport' content='width=device-width, initial-scale=1'>` +
+    `<link href='https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap' rel='stylesheet'>` +
     `<style type='text/css'>` +
-    `body{font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#333;margin:0;padding:0;}` +
-    `.header{background:##969696;padding:40px 20px;text-align:center;}` +
-    `.header h1{color:#fff;font-size:26px;margin:0;}` +
-    `.container{max-width:840px;margin:0 auto;padding:30px 20px;}` +
-    `h3{font-size:20px;color:#333;margin-top:36px;}` +
-    `p,li{line-height:1.7;}` +
+    `#wrapper { font-family: 'Roboto', sans-serif; font-size: 19px; color: #333; background-color: #FFF;}` +
+    `.container { width: 80%; margin: 0 auto; background-color: #FFF; border-style:solid; border-width:0px;}` +
+    `li { margin-bottom: 8px;}` +
+    `ul.list-unstyled li { list-style: none; margin-bottom: 0;}` +
+    `ul.list-unstyled { margin: 0; padding: 0;}` +
+    `.header { text-align: center; color: #FFF; font-size: 24px;}` +
+    `.box { padding: 60px; background: #F2F2F2;}` +
+    `h1 { font-size: 36px;}` +
+    `h3 { font-size: 24px; color:#000;}` +
+    `.section-header { margin-top: 50px;}` +
     `</style>` +
     `</head>` +
     `<body>` +
-    `<div class='header'><h1>${safeTitle}</h1></div>` +
-    `<div class='container'>` +
-    (descBlock ? `<h3>Description</h3>${descBlock}` : '') +
-    `<h3>Why buy from us?</h3>` +
-    `<p>We know waiting for products to arrive can be frustrating! So we aim to give you not only the best products but also deliver them as fast as possible.</p>` +
-    `<h3>Delivery</h3>` +
-    `<p>3-5 days depending on what you ordered.</p>` +
-    `<h3>Return Policy</h3>` +
-    `<p>You may return your item if you&apos;re not happy with it within 30 days of purchase.</p>` +
-    `<h3>Feedback</h3>` +
-    `<p>Once you have received your items please leave some feedback as it really helps us grow. Thank you!</p>` +
+    `<div id='wrapper'>` +
+    `<div class='header box'> ` +
+    `<h1 style='color: #181818;'>${safeTitle}</h1>` +
+    `</div>` +
+    `<div class='container'> ` +
+    `<h3>Description</h3> ` +
+    descBlock +
+    ` <ul class='list-unstyled'> ` +
+    `<li> ` +
+    `<h3 class='section-header'>Why buy from us?</h3> ` +
+    `<p>We know waiting for products to arrive can be frustrating! So we aim to give you not only the best products but also deliver them as fast as possible.</p> ` +
+    `</li> ` +
+    `<li> ` +
+    `<h3 class='section-header'>Delivery</h3> ` +
+    `3-5 days depending on what you ordered. ` +
+    `</li> ` +
+    `<li> ` +
+    `<h3 class='section-header'>Return Policy</h3> ` +
+    `You may return your item if you're not happy with it within 30 days of purchase ` +
+    `</li> ` +
+    `<li> ` +
+    `<h3 class='section-header'>Feedback</h3> ` +
+    `<p> Once you have received your items please leave some feedback as it really helps us grow. Thank you! </p> ` +
+    `<br> ` +
+    `</li> ` +
+    `</ul>` +
+    `</div>` +
+    `<div class='box'></div>` +
     `</div>` +
     `</body>` +
     `</html>`

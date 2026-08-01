@@ -76,6 +76,10 @@ public class ScrapeController : ControllerBase
         var python = _config["Scraper:PythonExecutable"] ?? "python3";
         var script = _config["Scraper:ScriptPath"] ?? "";
 
+        Console.WriteLine($"[Scrape] Starting scrape for ASINs: {string.Join(", ", request.Asins)}");
+        Console.WriteLine($"[Scrape] Using Python: {python}");
+        Console.WriteLine($"[Scrape] Using script: {script}");
+
         if (string.IsNullOrWhiteSpace(script))
             return StatusCode(500, new { error = "Scraper:ScriptPath is not configured in appsettings." });
 
@@ -100,12 +104,18 @@ public class ScrapeController : ControllerBase
         var stdout = await stdoutTask;
         var stderr = await stderrTask;
 
+        Console.WriteLine($"[Scrape] Process exited with code: {process.ExitCode}");
+        Console.WriteLine($"[Scrape] stdout: {stdout}");
+        Console.WriteLine($"[Scrape] stderr: {stderr}");
+
         if (process.ExitCode != 0)
             return StatusCode(500, new { error = stderr.Trim(), stdout });
 
         var scraped = JsonSerializer.Deserialize<List<ScrapedProduct>>(stdout);
         if (scraped is null || scraped.Count == 0)
             return StatusCode(500, new { error = "No results returned from scraper." });
+
+        Console.WriteLine($"[Scrape] Parsed {scraped.Count} products from scraper output");
 
         // Create a scraping job record
         var job = await _scrapingJobs.CreateAsync(userId.Value, scraped.Count);
@@ -124,26 +134,31 @@ public class ScrapeController : ControllerBase
         {
             if (!string.IsNullOrWhiteSpace(product.Error))
             {
+                Console.WriteLine($"[Scrape] Product {product.Asin} had scraper error: {product.Error}");
                 errors.Add(new { product.Asin, product.Error });
                 continue;
             }
 
             try
             {
-                // Upsert into global inventory table
-                var inventoryItem = await _inventory.UpsertAsync(product);
-
-                // Suggest eBay category if not already set
-                if (inventoryItem.EbayCategory == null)
+                Console.WriteLine($"[Scrape] Suggesting category for product: {product.Asin} - {product.Title}");
+                var (catId, catName) = await _ebayCategory.SuggestCategoryAsync(product.Title);
+                if (string.IsNullOrWhiteSpace(catId) || string.IsNullOrWhiteSpace(catName))
                 {
-                    var (catId, catName) = await _ebayCategory.SuggestCategoryAsync(product.Title);
-                    if (catId != null)
-                    {
-                        await _inventory.UpdateEbayCategoryAsync(inventoryItem.Id, catId, catName!);
-                        inventoryItem.EbayCategory     = catId;
-                        inventoryItem.EbayCategoryName = catName;
-                    }
+                    Console.WriteLine($"[Scrape] Category suggestion failed for {product.Asin}");
+                    errors.Add(new { product.Asin, error = "Category suggestion failed or returned no category." });
+                    continue;
                 }
+
+                Console.WriteLine($"[Scrape] Category for {product.Asin}: {catId} - {catName}");
+
+                // Upsert into global inventory table
+                Console.WriteLine($"[Scrape] Saving product to inventory: {product.Asin}");
+                var inventoryItem = await _inventory.UpsertAsync(product);
+                Console.WriteLine($"[Scrape] Inventory row created/updated with id: {inventoryItem.Id}");
+                await _inventory.UpdateEbayCategoryAsync(inventoryItem.Id, catId, catName!);
+                inventoryItem.EbayCategory = catId;
+                inventoryItem.EbayCategoryName = catName;
 
                 // Check if user already has this product
                 var existing = await _userInventory.GetAsync(userId.Value, inventoryItem.Id);
@@ -152,11 +167,13 @@ public class ScrapeController : ControllerBase
                 if (existing == null)
                 {
                     // Create new entry in user_inventory with default qty from settings
+                    Console.WriteLine($"[Scrape] Creating user inventory entry for user {userId.Value}, inventory {inventoryItem.Id}");
                     userInv = await _userInventory.CreateAsync(userId.Value, inventoryItem.Id, settings.Qty);
                 }
                 else
                 {
                     // User already has this product - just update it
+                    Console.WriteLine($"[Scrape] Product already exists for user {userId.Value}, inventory {inventoryItem.Id}");
                     userInv = existing;
                 }
 
@@ -179,6 +196,21 @@ public class ScrapeController : ControllerBase
                     EbayItemId = userInv.EbayItemId,
                     IsActive = inventoryItem.IsActive,
                     Description = inventoryItem.Description,
+                    Features = inventoryItem.Features,
+                    Brand = inventoryItem.Brand,
+                    Mpn = inventoryItem.Mpn,
+                    Model = inventoryItem.Model,
+                    Color = inventoryItem.Color,
+                    Size = inventoryItem.Size,
+                    ProductType = inventoryItem.ProductType,
+                    Department = inventoryItem.Department,
+                    Ean = inventoryItem.Ean,
+                    Upc = inventoryItem.Upc,
+                    Isbn = inventoryItem.Isbn,
+                    Height = inventoryItem.Height,
+                    Width = inventoryItem.Width,
+                    Length = inventoryItem.Length,
+                    Weight = inventoryItem.Weight,
                     EbayCategory = inventoryItem.EbayCategory,
                     EbayCategoryName = inventoryItem.EbayCategoryName,
                     SellingPrice = CalculateSellingPrice(inventoryItem.AmazonPrice, settings.ProfitMarkup),
@@ -188,6 +220,7 @@ public class ScrapeController : ControllerBase
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[Scrape] Exception for {product.Asin}: {ex}");
                 errors.Add(new { product.Asin, error = ex.Message });
             }
         }

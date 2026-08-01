@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AmazonScraper.Api.Services;
 
@@ -22,15 +23,12 @@ public class EbayCategoryService
     // UK eBay marketplace category tree ID
     private const int UkCategoryTreeId = 3;
 
-    public EbayCategoryService(
-        IConfiguration config,
-        IHttpClientFactory httpClientFactory,
-        ILogger<EbayCategoryService> logger)
+    public EbayCategoryService(string? clientId, string? clientSecret)
     {
-        _http = httpClientFactory.CreateClient("ebay");
-        _clientId = config["Ebay:ClientId"];
-        _clientSecret = config["Ebay:ClientSecret"];
-        _logger = logger;
+        _http = new HttpClient();
+        _clientId = clientId;
+        _clientSecret = clientSecret;
+        _logger = NullLogger<EbayCategoryService>.Instance;
     }
 
     /// <summary>True when ClientId and ClientSecret are present in config.</summary>

@@ -44,6 +44,32 @@ def parse_price_decimal(price_text: str | None) -> float | None:
     return None
 
 
+def extract_attribute_from_text(text: str, patterns: list[str]) -> str | None:
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if match and match.group(1):
+            return re.sub(r"\s+", " ", match.group(1)).strip(" -:")
+    return None
+
+
+def extract_color_from_text(text: str) -> str | None:
+    match = re.search(
+        r"\b(black|white|blue|red|green|silver|gold|grey|gray|pink|purple|orange|yellow|brown)\b",
+        text,
+        re.IGNORECASE,
+    )
+    return match.group(1).strip().title() if match else None
+
+
+def extract_size_from_text(text: str) -> str | None:
+    match = re.search(
+        r"\b(\d+(?:\.\d+)?(?:cm|mm|in|inch|inches|kg|g|lb|lbs|x\d+(?:cm|mm|in|inch|inches)))\b",
+        text,
+        re.IGNORECASE,
+    )
+    return match.group(1).strip() if match else None
+
+
 def parse_product_html(html: str, url: str) -> dict[str, Any]:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -128,12 +154,20 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
             if fallback_url and fallback_url not in image_urls:
                 image_urls.append(fallback_url)
 
+    # Extract feature bullets/description
+    features = []
+    feature_list = soup.select_one("#feature-bullets ul, #aplus-feature-bullets .a-unordered-list")
+    if feature_list:
+        for li in feature_list.select("li"):
+            feature_text = li.get_text(" ", strip=True)
+            if feature_text and not feature_text.lower().startswith("see more"):
+                features.append(feature_text)
+    
+    # Get general description
     description = None
     for selector in [
         "#productDescription p",
         "#productDescription",
-        "#feature-bullets ul",
-        "#aplus-feature-bullets .a-unordered-list",
         "meta[name='description']",
     ]:
         if selector.startswith("meta"):
@@ -160,6 +194,90 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         # Fallback: add-to-cart button present means purchasable
         in_stock = soup.select_one("#add-to-cart-button") is not None
 
+    full_text = soup.get_text(" ", strip=True)
+    
+    # Extract product details from detail table
+    product_details = {}
+    for table in soup.select("#productDetails_detailBullets_sections1 tr, #productDetails_techSpec_section_1 tr, .prodDetTable tr"):
+        th = table.select_one("th")
+        td = table.select_one("td")
+        if th and td:
+            key = th.get_text(" ", strip=True).lower().rstrip(": ")
+            value = td.get_text(" ", strip=True)
+            product_details[key] = value
+    
+    # Extract brand, MPN, model, etc.
+    brand = (
+        product_details.get("brand")
+        or product_details.get("manufacturer")
+        or extract_attribute_from_text(
+            full_text,
+            [
+                r"\bbrand\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)",
+                r"\bmanufacturer\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)",
+            ],
+        )
+    )
+    mpn = (
+        product_details.get("part number")
+        or product_details.get("manufacturer part number")
+        or product_details.get("mpn")
+        or extract_attribute_from_text(
+            full_text,
+            [
+                r"\bpart\s+number\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)",
+                r"\bmpn\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)",
+                r"\bmanufacturer\s+part\s+number\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)",
+            ],
+        )
+    )
+    model = (
+        product_details.get("model")
+        or product_details.get("model number")
+        or extract_attribute_from_text(full_text, [r"\bmodel\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)"])
+    )
+    
+    # Extract identifiers
+    ean = product_details.get("ean") or None
+    upc = product_details.get("upc") or None
+    isbn = product_details.get("isbn") or product_details.get("isbn-13") or product_details.get("isbn-10") or None
+    
+    # Extract dimensions
+    dimensions = product_details.get("product dimensions") or product_details.get("package dimensions") or ""
+    item_weight = product_details.get("item weight") or product_details.get("weight") or ""
+    
+    # Parse dimensions to extract height, width, length
+    height = width = length = ""
+    dim_match = re.search(r"(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)", dimensions)
+    if dim_match:
+        length, width, height = dim_match.groups()
+        # Standardize to mm (assuming cm in Amazon listings)
+        try:
+            length = str(int(float(length) * 10))
+            width = str(int(float(width) * 10))
+            height = str(int(float(height) * 10))
+        except ValueError:
+            pass
+    
+    # Color and size
+    color = extract_color_from_text(full_text) or extract_attribute_from_text(
+        full_text,
+        [r"\bcolour\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)", r"\bcolor\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)"],
+    )
+    size = extract_size_from_text(full_text) or extract_attribute_from_text(
+        full_text,
+        [r"\bsize\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)"],
+    )
+    
+    # Product type and department
+    product_type = extract_attribute_from_text(
+        full_text,
+        [r"\btype\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)", r"\bcategory\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)"],
+    )
+    department = product_details.get("department") or extract_attribute_from_text(
+        full_text, [r"\bdepartment\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)"]
+    )
+
     asin = extract_asin(url)
 
     return {
@@ -169,9 +287,24 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
         "image_url": image_url,
         "image_urls": image_urls,
         "description": description,
+        "features": features,
         "in_stock": in_stock,
         "currency": "GBP",
         "asin": asin or "",
+        "brand": brand or "",
+        "mpn": mpn or "",
+        "model": model or "",
+        "color": color or "",
+        "size": size or "",
+        "product_type": product_type or "",
+        "department": department or "",
+        "ean": ean or "",
+        "upc": upc or "",
+        "isbn": isbn or "",
+        "height": height,
+        "width": width,
+        "length": length,
+        "weight": item_weight,
     }
 
 

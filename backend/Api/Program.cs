@@ -16,7 +16,11 @@ if (File.Exists(envFile))
         if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#')) continue;
         var eqIdx = line.IndexOf('=');
         if (eqIdx > 0)
-            Environment.SetEnvironmentVariable(line[..eqIdx].Trim(), line[(eqIdx + 1)..].Trim());
+        {
+            var envKey = line[..eqIdx].Trim();
+            var value = line[(eqIdx + 1)..].Trim();
+            Environment.SetEnvironmentVariable(envKey, value);
+        }
     }
 }
 
@@ -26,7 +30,13 @@ var dbUser     = Environment.GetEnvironmentVariable("USERNAME")      ?? throw ne
 var dbPassword = Environment.GetEnvironmentVariable("PASSWORD")      ?? throw new InvalidOperationException("Missing env var: PASSWORD");
 var dbName     = Environment.GetEnvironmentVariable("DATABASE_NAME") ?? throw new InvalidOperationException("Missing env var: DATABASE_NAME");
 
-var connectionString = $"Host={dbHost};Username={dbUser};Password={dbPassword};Database={dbName};SSL Mode=Require;Trust Server Certificate=true";
+var ebayClientId = Environment.GetEnvironmentVariable("Ebay__ClientId")
+    ?? throw new InvalidOperationException("Missing env var: Ebay__ClientId or Ebay:ClientId");
+
+var ebayClientSecret = Environment.GetEnvironmentVariable("Ebay__ClientSecret")
+    ?? throw new InvalidOperationException("Missing env var: Ebay__ClientSecret or Ebay:ClientSecret");
+
+var connectionString = $"Host={dbHost};Username={dbUser};Password={dbPassword};Database={dbName};SSL Mode=Disable";
 var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
 builder.Services.AddSingleton(dataSource);
 
@@ -39,7 +49,7 @@ builder.Services.AddScoped<ScrapingJobsRepository>();
 
 // eBay category service (singleton so the OAuth token is cached across requests)
 builder.Services.AddHttpClient("ebay");
-builder.Services.AddSingleton<EbayCategoryService>();
+builder.Services.AddSingleton(new EbayCategoryService(ebayClientId, ebayClientSecret));
 
 // Configure JWT Authentication
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") 

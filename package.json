@@ -12,9 +12,10 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.2",
     "lottie-react": "^2.4.1",
+    "lottie-web": "^5.13.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1",
+    "react-router-dom": "^7.11.0",
     "tailwindcss": "^4.3.2"
   },
   "devDependencies": {

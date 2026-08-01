@@ -7,6 +7,7 @@ import Inventory from './pages/Inventory';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Pairing from './pages/Pairing';
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 
 function App() {
@@ -55,8 +56,14 @@ function App() {
             <nav className="flex items-center jutify-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900 text-sm">
                 <div className="flex items-center gap-10 text-slate-700 dark:text-slate-200">
                     <Link to="/inventory"><img src="/ScrapeLogo.png" className='h-8 w-auto'/></Link>
+                    <Link to="/inventory">
+                        Inventory
+                    </Link>
                     <Link to="/import-products">
                         Import Products
+                    </Link>
+                    <Link to="/pairing">
+                        Pairing
                     </Link>
                 </div>
                 <div className='flex items-center gap-3'>
@@ -74,6 +81,7 @@ function App() {
                 <Route path="/import-products" element={<ImportProducts />} />
                 <Route path="/import-history" element={<ImportHistory />} />
                 <Route path="/inventory" element={<Inventory />} />
+                <Route path="/pairing" element={<Pairing />} />
                 <Route path="/settings" element={<Settings isDark={isDark} setIsDark={setIsDark} onLogout={handleLogout} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

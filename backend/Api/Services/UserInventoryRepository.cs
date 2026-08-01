@@ -63,7 +63,23 @@ public class UserInventoryRepository
                 ui.qty,
                 ui.status,
                 ui.ebay_item_id,
-                us.profit_markup
+                us.profit_markup,
+                i.images_json,
+                i.features_json,
+                i.brand,
+                i.mpn,
+                i.model,
+                i.color,
+                i.size,
+                i.product_type,
+                i.department,
+                i.ean,
+                i.upc,
+                i.isbn,
+                i.height,
+                i.width,
+                i.length,
+                i.weight
             FROM user_inventory ui
             INNER JOIN inventory i ON ui.inventory_id = i.id
             INNER JOIN user_settings us ON us.user_id = ui.user_id
@@ -87,6 +103,30 @@ public class UserInventoryRepository
             {
                 sellingPrice = Math.Round(amazonPrice.Value * (1 + profitMarkup / 100), 2);
             }
+
+            // Parse images JSON
+            var imagesJson = reader.IsDBNull(18) ? null : reader.GetString(18);
+            var imageUrls = new List<string>();
+            if (!string.IsNullOrWhiteSpace(imagesJson))
+            {
+                try
+                {
+                    imageUrls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(imagesJson) ?? new();
+                }
+                catch { }
+            }
+
+            // Parse features JSON
+            var featuresJson = reader.IsDBNull(19) ? null : reader.GetString(19);
+            var features = new List<string>();
+            if (!string.IsNullOrWhiteSpace(featuresJson))
+            {
+                try
+                {
+                    features = System.Text.Json.JsonSerializer.Deserialize<List<string>>(featuresJson) ?? new();
+                }
+                catch { }
+            }
             
             items.Add(new UserInventoryDto
             {
@@ -108,6 +148,22 @@ public class UserInventoryRepository
                 Status = StringToStatus(reader.GetString(15)),
                 EbayItemId = reader.IsDBNull(16) ? null : reader.GetString(16),
                 SellingPrice = sellingPrice,
+                ImageUrls = imageUrls,
+                Features = features,
+                Brand = reader.IsDBNull(20) ? null : reader.GetString(20),
+                Mpn = reader.IsDBNull(21) ? null : reader.GetString(21),
+                Model = reader.IsDBNull(22) ? null : reader.GetString(22),
+                Color = reader.IsDBNull(23) ? null : reader.GetString(23),
+                Size = reader.IsDBNull(24) ? null : reader.GetString(24),
+                ProductType = reader.IsDBNull(25) ? null : reader.GetString(25),
+                Department = reader.IsDBNull(26) ? null : reader.GetString(26),
+                Ean = reader.IsDBNull(27) ? null : reader.GetString(27),
+                Upc = reader.IsDBNull(28) ? null : reader.GetString(28),
+                Isbn = reader.IsDBNull(29) ? null : reader.GetString(29),
+                Height = reader.IsDBNull(30) ? null : reader.GetString(30),
+                Width = reader.IsDBNull(31) ? null : reader.GetString(31),
+                Length = reader.IsDBNull(32) ? null : reader.GetString(32),
+                Weight = reader.IsDBNull(33) ? null : reader.GetString(33),
             });
         }
         return items;

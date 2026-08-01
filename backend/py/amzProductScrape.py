@@ -70,6 +70,23 @@ def extract_size_from_text(text: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
+def clean_amazon_image_url(url: str) -> str:
+    """
+    Remove size parameters from Amazon image URLs to match Dilato format.
+    Converts: https://m.media-amazon.com/images/I/71vY18ciJsL._AC_SL1500_.jpg
+    To: https://m.media-amazon.com/images/I/71vY18ciJsL.jpg
+    """
+    if not url:
+        return url
+    
+    # Remove size/format suffixes like _AC_SL1500_, _SL500_, _AC_UL1500_, etc.
+    # Pattern: ._AC_SL1500_. becomes just .
+    # The URL structure is: filename._AC_SL1500_.jpg (two dots!)
+    cleaned = re.sub(r'\._[A-Z]+(_[A-Z]+)?\d+_\.', '.', url)
+    
+    return cleaned
+
+
 def parse_product_html(html: str, url: str) -> dict[str, Any]:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -126,6 +143,7 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
                     or ""
                 ).strip() or None
         if image_url:
+            image_url = clean_amazon_image_url(image_url)
             break
 
     # Collect all gallery images
@@ -140,8 +158,10 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
             or img_elem.get("src")
             or ""
         ).strip()
-        if alt_image_url and alt_image_url not in image_urls:
-            image_urls.append(alt_image_url)
+        if alt_image_url:
+            alt_image_url = clean_amazon_image_url(alt_image_url)
+            if alt_image_url not in image_urls:
+                image_urls.append(alt_image_url)
     
     # Fallback: check for images in the main image container
     if not image_urls:
@@ -151,8 +171,10 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
                 or img_elem.get("src")
                 or ""
             ).strip()
-            if fallback_url and fallback_url not in image_urls:
-                image_urls.append(fallback_url)
+            if fallback_url:
+                fallback_url = clean_amazon_image_url(fallback_url)
+                if fallback_url not in image_urls:
+                    image_urls.append(fallback_url)
 
     # Extract feature bullets/description
     features = []

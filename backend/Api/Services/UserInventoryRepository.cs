@@ -299,4 +299,30 @@ public class UserInventoryRepository
         cmd.Parameters.AddWithValue("qty", newQty);
         await cmd.ExecuteNonQueryAsync();
     }
+
+    /// <summary>
+    /// Get all ASINs that the user currently has in their inventory.
+    /// Used to check for duplicates during import.
+    /// </summary>
+    public async Task<HashSet<string>> GetUserAsinsAsync(long userId)
+    {
+        const string sql = @"
+            SELECT i.asin
+            FROM user_inventory ui
+            JOIN inventory i ON ui.inventory_id = i.id
+            WHERE ui.user_id = @userId";
+
+        await using var conn = await _dataSource.OpenConnectionAsync();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("userId", userId);
+        await using var reader = await cmd.ExecuteReaderAsync();
+
+        var asins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        while (await reader.ReadAsync())
+        {
+            asins.Add(reader.GetString(0));
+        }
+
+        return asins;
+    }
 }

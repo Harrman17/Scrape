@@ -11,6 +11,7 @@ function Inventory() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [settings, setSettings] = useState({ itemLocationPostcode: '', itemLocationCity: '' })
+  const [statusFilters, setStatusFilters] = useState(['Unpaired', 'Active', 'Issues', 'Ended on eBay'])
 
   const token = localStorage.getItem('authToken')
 
@@ -65,8 +66,20 @@ function Inventory() {
     URL.revokeObjectURL(url)
   }
 
-  const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE))
-  const pageProducts = products.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  function toggleStatusFilter(status) {
+    setStatusFilters((current) =>
+      current.includes(status)
+        ? current.filter((s) => s !== status)
+        : [...current, status]
+    )
+    setCurrentPage(1) // Reset to first page when filters change
+  }
+
+  // Apply filters
+  const filteredProducts = products.filter((p) => statusFilters.includes(p.status))
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE))
+  const pageProducts = filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
   const pageIds = pageProducts.map((p) => p.userInventoryId)
 
   const allPageSelected = pageProducts.length > 0 && pageIds.every((id) => selectedIds.includes(id))
@@ -80,7 +93,7 @@ function Inventory() {
   }
 
   function selectAll() {
-    setSelectedIds(products.map((p) => p.userInventoryId))
+    setSelectedIds(filteredProducts.map((p) => p.userInventoryId))
   }
 
   function toggleSelectOne(id) {
@@ -147,8 +160,14 @@ function Inventory() {
         {/* Header row */}
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold dark:text-slate-100">
+            Inventory
             {products.length > 0 && (
-              <span className="ml-2 text-sm font-normal text-slate-400">{products.length} products</span>
+              <span className="ml-2 text-sm font-normal text-slate-400">
+                {filteredProducts.length === products.length 
+                  ? `${products.length} products`
+                  : `${filteredProducts.length} of ${products.length} products`
+                }
+              </span>
             )}
           </h1>
 
@@ -157,7 +176,7 @@ function Inventory() {
             <button
               type="button"
               onClick={selectAllInPage}
-              disabled={products.length === 0}
+              disabled={filteredProducts.length === 0}
               className="cursor-pointer rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               Select page
@@ -165,7 +184,7 @@ function Inventory() {
             <button
               type="button"
               onClick={deselectAllInPage}
-              disabled={products.length === 0}
+              disabled={filteredProducts.length === 0}
               className="cursor-pointer rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               Deselect page
@@ -173,7 +192,7 @@ function Inventory() {
             <button
               type="button"
               onClick={selectAll}
-              disabled={products.length === 0}
+              disabled={filteredProducts.length === 0}
               className="cursor-pointer rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               Select all
@@ -195,6 +214,46 @@ function Inventory() {
               Product Creation CSV{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
             </button>
           </div>
+        </div>
+
+        {/* Status Filters */}
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/30">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={statusFilters.includes('Unpaired')}
+              onChange={() => toggleStatusFilter('Unpaired')}
+              className="h-4 w-4 cursor-pointer rounded border-slate-300 text-black focus:ring-2 focus:ring-black focus:ring-offset-0 dark:border-slate-600 dark:bg-slate-700"
+            />
+            Unpaired Items
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={statusFilters.includes('Active')}
+              onChange={() => toggleStatusFilter('Active')}
+              className="h-4 w-4 cursor-pointer rounded border-slate-300 text-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-slate-700"
+            />
+            Active
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={statusFilters.includes('Issues')}
+              onChange={() => toggleStatusFilter('Issues')}
+              className="h-4 w-4 cursor-pointer rounded border-slate-300 text-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-0 dark:border-slate-600 dark:bg-slate-700"
+            />
+            Items with issues
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={statusFilters.includes('Ended on eBay')}
+              onChange={() => toggleStatusFilter('Ended on eBay')}
+              className="h-4 w-4 cursor-pointer rounded border-slate-300 text-slate-500 focus:ring-2 focus:ring-slate-400 focus:ring-offset-0 dark:border-slate-600 dark:bg-slate-700"
+            />
+            Ended on eBay
+          </label>
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
@@ -222,10 +281,16 @@ function Inventory() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
-              {products.length === 0 ? (
+              {filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-3 py-8 text-center text-slate-500 dark:text-slate-400">
-                    No products to display yet. <a href="/import-products" className="text-blue-600 hover:underline">Import some products</a>.
+                    {products.length === 0 ? (
+                      <>
+                        No products to display yet. <a href="/import-products" className="text-blue-600 hover:underline">Import some products</a>.
+                      </>
+                    ) : (
+                      'No products match the selected filters.'
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -307,8 +372,8 @@ function Inventory() {
         {/* Pagination */}
         <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>
-            {products.length > 0
-              ? `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, products.length)} of ${products.length}`
+            {filteredProducts.length > 0
+              ? `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filteredProducts.length)} of ${filteredProducts.length}`
               : 'No products'}
           </span>
           {totalPages > 1 && (

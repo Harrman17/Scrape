@@ -37,11 +37,19 @@ function ImportProducts() {
 
       const saved = payload.saved?.length ?? 0
       const errors = payload.errors?.length ?? 0
-      setSuccess(
-        errors > 0
-          ? `Imported ${saved} product${saved !== 1 ? 's' : ''} with ${errors} error${errors !== 1 ? 's' : ''}.`
-          : `Successfully imported ${saved} product${saved !== 1 ? 's' : ''}.`
-      )
+      const blocked = payload.blocked?.length ?? 0
+      
+      let message = `Successfully imported ${saved} product${saved !== 1 ? 's' : ''}.`
+      
+      if (blocked > 0) {
+        message += ` ${blocked} duplicate${blocked !== 1 ? 's' : ''} blocked.`
+      }
+      
+      if (errors > 0) {
+        message += ` ${errors} error${errors !== 1 ? 's' : ''}.`
+      }
+      
+      setSuccess(message)
       setAsins('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Scraping failed')

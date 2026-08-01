@@ -127,8 +127,13 @@ public class ScrapeController : ControllerBase
             settings = await _userSettings.CreateAsync(userId.Value);
         }
 
+        // Get all ASINs the user already has in their inventory
+        var existingAsins = await _userInventory.GetUserAsinsAsync(userId.Value);
+        Console.WriteLine($"[Scrape] User has {existingAsins.Count} existing products in inventory");
+
         var saved = new List<UserInventoryDto>();
         var errors = new List<object>();
+        var blocked = new List<object>();
 
         foreach (var product in scraped)
         {
@@ -136,6 +141,18 @@ public class ScrapeController : ControllerBase
             {
                 Console.WriteLine($"[Scrape] Product {product.Asin} had scraper error: {product.Error}");
                 errors.Add(new { product.Asin, product.Error });
+                continue;
+            }
+
+            // Check if user already has this ASIN
+            if (existingAsins.Contains(product.Asin))
+            {
+                Console.WriteLine($"[Scrape] Product {product.Asin} already exists in user inventory - blocking as duplicate");
+                blocked.Add(new { 
+                    Asin = product.Asin, 
+                    Title = product.Title,
+                    Reason = "Already in inventory" 
+                });
                 continue;
             }
 
@@ -160,22 +177,9 @@ public class ScrapeController : ControllerBase
                 inventoryItem.EbayCategory = catId;
                 inventoryItem.EbayCategoryName = catName;
 
-                // Check if user already has this product
-                var existing = await _userInventory.GetAsync(userId.Value, inventoryItem.Id);
-
-                UserInventory userInv;
-                if (existing == null)
-                {
-                    // Create new entry in user_inventory with default qty from settings
-                    Console.WriteLine($"[Scrape] Creating user inventory entry for user {userId.Value}, inventory {inventoryItem.Id}");
-                    userInv = await _userInventory.CreateAsync(userId.Value, inventoryItem.Id, settings.Qty);
-                }
-                else
-                {
-                    // User already has this product - just update it
-                    Console.WriteLine($"[Scrape] Product already exists for user {userId.Value}, inventory {inventoryItem.Id}");
-                    userInv = existing;
-                }
+                // Create new entry in user_inventory with default qty from settings
+                Console.WriteLine($"[Scrape] Creating user inventory entry for user {userId.Value}, inventory {inventoryItem.Id}");
+                var userInv = await _userInventory.CreateAsync(userId.Value, inventoryItem.Id, settings.Qty);
 
                 // Build DTO with combined data
                 var dto = new UserInventoryDto
@@ -226,12 +230,17 @@ public class ScrapeController : ControllerBase
         }
 
         // Mark job complete
-        await _scrapingJobs.UpdateCompletedAsync(job.Id, saved.Count + errors.Count, saved.Count, errors.Count);
+        await _scrapingJobs.UpdateCompletedAsync(
+            job.Id, 
+            saved.Count + errors.Count + blocked.Count, 
+            saved.Count, 
+            blocked.Count
+        );
 
         if (errors.Count > 0 && saved.Count == 0)
-            return StatusCode(500, new { error = "All products failed to import.", errors });
+            return StatusCode(500, new { error = "All products failed to import.", errors, blocked });
 
-        return Ok(new { saved, errors });
+        return Ok(new { saved, errors, blocked });
     }
 
     private long? GetUserId()

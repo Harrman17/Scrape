@@ -297,9 +297,226 @@ public class ScrapeController : ControllerBase
         if (amazonPrice == null) return null;
         return amazonPrice * (1 + profitMarkup / 100);
     }
+
+    /// <summary>
+    /// Update prices and stock status for all user's inventory items.
+    /// Returns a summary of changes detected.
+    /// </summary>
+    [HttpPost("update-prices")]
+    public async Task<ActionResult<object>> UpdatePricesAndStock()
+    {
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized(new { error = "User ID not found in token." });
+
+        var python = _config["Scraper:PythonExecutable"] ?? "python3";
+        var script = _config["Scraper:PriceUpdateScriptPath"];
+
+        if (string.IsNullOrWhiteSpace(script))
+        {
+            // Fallback to default path if not configured
+            script = Path.Combine(
+                Directory.GetParent(_config["Scraper:ScriptPath"] ?? "")?.FullName ?? "",
+                "amzPriceStockUpdate.py"
+            );
+        }
+
+        Console.WriteLine($"[PriceUpdate] Starting price update for user {userId}");
+        Console.WriteLine($"[PriceUpdate] Using script: {script}");
+
+        if (!System.IO.File.Exists(script))
+            return StatusCode(500, new { error = $"Price update script not found: {script}" });
+
+        // Get all inventory items for the user
+        var userInventory = await _userInventory.GetUserInventoryAsync(userId.Value);
+        if (userInventory.Count == 0)
+            return Ok(new { message = "No inventory items to update", updated = 0, changes = new List<object>() });
+
+        var asins = userInventory.Select(i => i.Asin).Distinct().ToList();
+        Console.WriteLine($"[PriceUpdate] Checking {asins.Count} products");
+
+        // Run the price update script
+        var asinArguments = string.Join(" ", asins.Select(asin => $"\"{asin}\""));
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = python,
+            Arguments = $"\"{script}\" {asinArguments}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+
+        using var process = Process.Start(startInfo);
+        if (process is null)
+            return StatusCode(500, new { error = "Failed to start price update script." });
+
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
+
+        Console.WriteLine($"[PriceUpdate] Process exited with code: {process.ExitCode}");
+        
+        if (!string.IsNullOrWhiteSpace(stderr))
+        {
+            Console.WriteLine($"[PriceUpdate] stderr: {stderr}");
+        }
+
+        if (process.ExitCode != 0)
+        {
+            return StatusCode(500, new { error = "Price update script failed", details = stderr });
+        }
+
+        Console.WriteLine($"[PriceUpdate] Script output: {stdout}");
+
+        var options = new JsonSerializerOptions 
+        { 
+            PropertyNameCaseInsensitive = true 
+        };
+        var updates = JsonSerializer.Deserialize<List<PriceStockUpdate>>(stdout, options);
+        if (updates is null || updates.Count == 0)
+            return StatusCode(500, new { error = "No results returned from price update script." });
+
+        Console.WriteLine($"[PriceUpdate] Received {updates.Count} updates");
+        Console.WriteLine($"[PriceUpdate] User has {userInventory.Count} inventory items");
+        foreach (var item in userInventory)
+        {
+            Console.WriteLine($"[PriceUpdate] User inventory item: ASIN={item.Asin}, Price={item.AmazonPrice}, Stock={item.InStock}");
+        }
+        foreach (var upd in updates)
+        {
+            Console.WriteLine($"[PriceUpdate] Update received: ASIN={upd.Asin}, Price={upd.Price}, Stock={upd.InStock}, Error={upd.Error}");
+        }
+
+        // Process updates and detect changes
+        var changes = new List<object>();
+        var updatedCount = 0;
+        var errorCount = 0;
+
+        foreach (var update in updates)
+        {
+            if (!string.IsNullOrWhiteSpace(update.Error))
+            {
+                Console.WriteLine($"[PriceUpdate] Error for {update.Asin}: {update.Error}");
+                errorCount++;
+                continue;
+            }
+
+            // Find the current item in user's inventory
+            var currentItem = userInventory.FirstOrDefault(i => i.Asin == update.Asin);
+            if (currentItem == null)
+            {
+                Console.WriteLine($"[PriceUpdate] ASIN {update.Asin} not found in user inventory");
+                continue;
+            }
+
+            var priceChanged = currentItem.AmazonPrice != update.Price;
+            var stockChanged = currentItem.InStock != update.InStock;
+
+            Console.WriteLine($"[PriceUpdate] Comparing {update.Asin}: DB price={currentItem.AmazonPrice}, New price={update.Price}, Changed={priceChanged}");
+            Console.WriteLine($"[PriceUpdate] Stock {update.Asin}: DB stock={currentItem.InStock}, New stock={update.InStock}, Changed={stockChanged}");
+
+            if (priceChanged || stockChanged)
+            {
+                // Update in database
+                await _inventory.UpdatePriceAndStockAsync(update.Asin, update.Price, update.InStock);
+                
+                changes.Add(new
+                {
+                    asin = update.Asin,
+                    title = currentItem.Title,
+                    oldPrice = currentItem.AmazonPrice,
+                    newPrice = update.Price,
+                    priceChanged,
+                    oldStock = currentItem.InStock,
+                    newStock = update.InStock,
+                    stockChanged
+                });
+
+                updatedCount++;
+                Console.WriteLine($"[PriceUpdate] Updated {update.Asin}: Price {currentItem.AmazonPrice} → {update.Price}, Stock {currentItem.InStock} → {update.InStock}");
+            }
+            else
+            {
+                Console.WriteLine($"[PriceUpdate] No changes for {update.Asin}");
+            }
+        }
+
+        Console.WriteLine($"[PriceUpdate] Complete: {updatedCount} changes, {errorCount} errors");
+
+        return Ok(new
+        {
+            totalChecked = asins.Count,
+            updated = updatedCount,
+            errors = errorCount,
+            changes
+        });
+    }
+
+    /// <summary>
+    /// Generate and download a CSV file for updating eBay listings with new prices and stock.
+    /// </summary>
+    [HttpGet("ebay-update-csv")]
+    public async Task<IActionResult> DownloadEbayUpdateCsv()
+    {
+        var userId = GetUserId();
+        if (userId == null)
+            return Unauthorized(new { error = "User ID not found in token." });
+
+        var userInventory = await _userInventory.GetUserInventoryAsync(userId.Value);
+        
+        // Filter for items that have eBay item IDs (already paired)
+        var pairedItems = userInventory.Where(i => !string.IsNullOrWhiteSpace(i.EbayItemId)).ToList();
+
+        if (pairedItems.Count == 0)
+            return NotFound(new { error = "No paired eBay items found in inventory." });
+
+        // Get user settings for profit markup
+        var settings = await _userSettings.GetAsync(userId.Value);
+        var profitMarkup = settings?.ProfitMarkup ?? 0m;
+
+        Console.WriteLine($"[EbayCsv] Generating CSV for {pairedItems.Count} items");
+
+        // Generate CSV content
+        var csv = new System.Text.StringBuilder();
+        
+        // CSV Header for eBay File Exchange format
+        csv.AppendLine("*Action(SiteID=UK|Country=UK|Currency=GBP|Version=1193|CC=UTF-8)");
+        csv.AppendLine("CustomLabel,Action,Quantity,StartPrice,SiteID,Format");
+
+        foreach (var item in pairedItems)
+        {
+            var newPrice = CalculateSellingPrice(item.AmazonPrice, profitMarkup);
+            var quantity = item.InStock ? item.Qty : 0;
+
+            // CustomLabel = eBay Item ID
+            // Action = Revise (to update existing listing)
+            // Quantity = Stock quantity (0 if out of stock)
+            // StartPrice = New selling price
+            csv.AppendLine($"{item.EbayItemId},Revise,{quantity},{newPrice:F2},3,FixedPriceItem");
+        }
+
+        var csvBytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+        var fileName = $"ebay-price-stock-update-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv";
+
+        Console.WriteLine($"[EbayCsv] CSV generated: {fileName}");
+
+        return File(csvBytes, "text/csv", fileName);
+    }
 }
 
 public class ScrapeRequest
 {
     public List<string> Asins { get; set; } = new();
+}
+
+public class PriceStockUpdate
+{
+    public string Asin { get; set; } = "";
+    public decimal? Price { get; set; }
+    public string Currency { get; set; } = "GBP";
+    public bool InStock { get; set; }
+    public string? Error { get; set; }
 }

@@ -268,4 +268,52 @@ public class InventoryRepository
         cmd.Parameters.AddWithValue("categoryName", categoryName);
         await cmd.ExecuteNonQueryAsync();
     }
+
+    /// <summary>
+    /// Update price and stock status for a product by ASIN.
+    /// Returns true if the product was found and updated.
+    /// </summary>
+    public async Task<bool> UpdatePriceAndStockAsync(string asin, decimal? newPrice, bool inStock)
+    {
+        const string sql = @"
+            UPDATE inventory
+            SET amazon_price = @price,
+                in_stock = @inStock,
+                last_scraped = NOW()
+            WHERE asin = @asin";
+
+        await using var conn = await _dataSource.OpenConnectionAsync();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("asin", asin);
+        cmd.Parameters.AddWithValue("price", (object?)newPrice ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("inStock", inStock);
+        
+        var rowsAffected = await cmd.ExecuteNonQueryAsync();
+        return rowsAffected > 0;
+    }
+
+    /// <summary>
+    /// Get all ASINs from inventory that are linked to at least one user.
+    /// Used for batch price/stock updates.
+    /// </summary>
+    public async Task<List<string>> GetActiveAsinsAsync()
+    {
+        const string sql = @"
+            SELECT DISTINCT i.asin
+            FROM inventory i
+            INNER JOIN user_inventory ui ON ui.inventory_id = i.id
+            WHERE i.is_active = true
+            ORDER BY i.asin";
+
+        await using var conn = await _dataSource.OpenConnectionAsync();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        await using var reader = await cmd.ExecuteReaderAsync();
+
+        var asins = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            asins.Add(reader.GetString(0));
+        }
+        return asins;
+    }
 }

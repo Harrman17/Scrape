@@ -66,6 +66,29 @@ function Inventory() {
     URL.revokeObjectURL(url)
   }
 
+  async function handleDownloadEbayUpdateCsv() {
+    try {
+      const response = await fetch('http://localhost:5211/api/scrape/ebay-update-csv', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to generate CSV')
+      }
+      
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ebay-price-stock-update-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
   function toggleStatusFilter(status) {
     setStatusFilters((current) =>
       current.includes(status)
@@ -207,11 +230,19 @@ function Inventory() {
             </button>
             <button
               type="button"
+              onClick={handleDownloadEbayUpdateCsv}
+              disabled={products.length === 0}
+              className="cursor-pointer rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Price and stock
+            </button>
+            <button
+              type="button"
               onClick={handleExportCsv}
               disabled={selectedIds.length === 0}
               className="cursor-pointer rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Product Creation CSV{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
+              Product Creation{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
             </button>
           </div>
         </div>

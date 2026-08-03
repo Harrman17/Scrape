@@ -156,6 +156,47 @@ public class ScrapeController : ControllerBase
                 continue;
             }
 
+            // Check if product price is below minimum threshold
+            if (settings.BlockProductsUnder.HasValue && product.AmazonPrice.HasValue)
+            {
+                if (product.AmazonPrice.Value < settings.BlockProductsUnder.Value)
+                {
+                    Console.WriteLine($"[Scrape] Product {product.Asin} blocked: price £{product.AmazonPrice.Value} is below minimum £{settings.BlockProductsUnder.Value}");
+                    blocked.Add(new {
+                        Asin = product.Asin,
+                        Title = product.Title,
+                        Reason = $"Price £{product.AmazonPrice.Value:F2} is below minimum £{settings.BlockProductsUnder.Value:F2}"
+                    });
+                    continue;
+                }
+            }
+
+            // Check against blocklist (both default and user's custom keywords)
+            var allBlocklistKeywords = new List<string>(UserSettings.DefaultBlocklist);
+            if (!string.IsNullOrWhiteSpace(settings.Blocklist))
+            {
+                var customKeywords = settings.Blocklist.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                allBlocklistKeywords.AddRange(customKeywords);
+            }
+
+            if (allBlocklistKeywords.Count > 0)
+            {
+                var textToCheck = $"{product.Title} {product.Description} {string.Join(" ", product.Features ?? new List<string>())}";
+                var matchedKeyword = allBlocklistKeywords.FirstOrDefault(keyword => 
+                    textToCheck.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+
+                if (matchedKeyword != null)
+                {
+                    Console.WriteLine($"[Scrape] Product {product.Asin} blocked: matched blocklist keyword '{matchedKeyword}'");
+                    blocked.Add(new {
+                        Asin = product.Asin,
+                        Title = product.Title,
+                        Reason = $"Blocked by keyword: '{matchedKeyword}'"
+                    });
+                    continue;
+                }
+            }
+
             try
             {
                 Console.WriteLine($"[Scrape] Suggesting category for product: {product.Asin} - {product.Title}");

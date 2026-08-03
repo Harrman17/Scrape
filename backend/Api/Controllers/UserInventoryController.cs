@@ -94,6 +94,7 @@ public class InventoryController : ControllerBase
             ItemLocationPostcode = settings.ItemLocationPostcode,
             ItemLocationCity = settings.ItemLocationCity,
             AutoRemoveBrand = settings.AutoRemoveBrand,
+            Blocklist = settings.Blocklist,
         });
     }
 
@@ -119,7 +120,8 @@ public class InventoryController : ControllerBase
             request.BlockProductsUnder,
             request.ItemLocationPostcode,
             request.ItemLocationCity,
-            request.AutoRemoveBrand);
+            request.AutoRemoveBrand,
+            request.Blocklist);
 
         // If qty changed, apply it to all existing inventory items
         if (currentSettings != null && currentSettings.Qty != request.Qty)
@@ -136,6 +138,7 @@ public class InventoryController : ControllerBase
             ItemLocationPostcode = settings.ItemLocationPostcode,
             ItemLocationCity = settings.ItemLocationCity,
             AutoRemoveBrand = settings.AutoRemoveBrand,
+            Blocklist = settings.Blocklist,
         });
     }
 
@@ -163,4 +166,5 @@ public class UpdateUserSettingsRequest
     public string? ItemLocationPostcode { get; set; }
     public string? ItemLocationCity { get; set; }
     public bool AutoRemoveBrand { get; set; } = false;
+    public string? Blocklist { get; set; }
 }

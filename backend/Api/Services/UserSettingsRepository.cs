@@ -24,7 +24,7 @@ public class UserSettingsRepository
         const string sql = @"
             SELECT id, user_id, qty, profit_markup, block_products_under,
                    item_location_postcode, item_location_city, auto_remove_brand,
-                   created_at, updated_at
+                   blocklist, created_at, updated_at
             FROM user_settings
             WHERE user_id = @userId
             LIMIT 1";
@@ -46,8 +46,9 @@ public class UserSettingsRepository
             ItemLocationPostcode = reader.IsDBNull(5) ? null : reader.GetString(5),
             ItemLocationCity = reader.IsDBNull(6) ? null : reader.GetString(6),
             AutoRemoveBrand = reader.GetBoolean(7),
-            CreatedAt = reader.IsDBNull(8) ? null : reader.GetFieldValue<DateTimeOffset>(8),
-            UpdatedAt = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
+            Blocklist = reader.IsDBNull(8) ? null : reader.GetString(8),
+            CreatedAt = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
+            UpdatedAt = reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
         };
     }
 
@@ -61,7 +62,7 @@ public class UserSettingsRepository
             VALUES (@userId, 1, 0, NOW(), NOW())
             RETURNING id, user_id, qty, profit_markup, block_products_under,
                       item_location_postcode, item_location_city, auto_remove_brand,
-                      created_at, updated_at";
+                      blocklist, created_at, updated_at";
 
         await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = new NpgsqlCommand(sql, conn);
@@ -80,8 +81,9 @@ public class UserSettingsRepository
             ItemLocationPostcode = reader.IsDBNull(5) ? null : reader.GetString(5),
             ItemLocationCity = reader.IsDBNull(6) ? null : reader.GetString(6),
             AutoRemoveBrand = reader.GetBoolean(7),
-            CreatedAt = reader.IsDBNull(8) ? null : reader.GetFieldValue<DateTimeOffset>(8),
-            UpdatedAt = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
+            Blocklist = reader.IsDBNull(8) ? null : reader.GetString(8),
+            CreatedAt = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
+            UpdatedAt = reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
         };
     }
 
@@ -95,7 +97,8 @@ public class UserSettingsRepository
         decimal? blockProductsUnder,
         string? itemLocationPostcode,
         string? itemLocationCity,
-        bool autoRemoveBrand)
+        bool autoRemoveBrand,
+        string? blocklist)
     {
         const string sql = @"
             UPDATE user_settings
@@ -105,11 +108,12 @@ public class UserSettingsRepository
                 item_location_postcode = @itemLocationPostcode,
                 item_location_city = @itemLocationCity,
                 auto_remove_brand = @autoRemoveBrand,
+                blocklist = @blocklist,
                 updated_at = NOW()
             WHERE user_id = @userId
             RETURNING id, user_id, qty, profit_markup, block_products_under,
                       item_location_postcode, item_location_city, auto_remove_brand,
-                      created_at, updated_at";
+                      blocklist, created_at, updated_at";
 
         await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = new NpgsqlCommand(sql, conn);
@@ -120,6 +124,7 @@ public class UserSettingsRepository
         cmd.Parameters.AddWithValue("itemLocationPostcode", (object?)itemLocationPostcode ?? DBNull.Value);
         cmd.Parameters.AddWithValue("itemLocationCity", (object?)itemLocationCity ?? DBNull.Value);
         cmd.Parameters.AddWithValue("autoRemoveBrand", autoRemoveBrand);
+        cmd.Parameters.AddWithValue("blocklist", (object?)blocklist ?? DBNull.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -134,8 +139,9 @@ public class UserSettingsRepository
             ItemLocationPostcode = reader.IsDBNull(5) ? null : reader.GetString(5),
             ItemLocationCity = reader.IsDBNull(6) ? null : reader.GetString(6),
             AutoRemoveBrand = reader.GetBoolean(7),
-            CreatedAt = reader.IsDBNull(8) ? null : reader.GetFieldValue<DateTimeOffset>(8),
-            UpdatedAt = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
+            Blocklist = reader.IsDBNull(8) ? null : reader.GetString(8),
+            CreatedAt = reader.IsDBNull(9) ? null : reader.GetFieldValue<DateTimeOffset>(9),
+            UpdatedAt = reader.IsDBNull(10) ? null : reader.GetFieldValue<DateTimeOffset>(10),
         };
     }
 }

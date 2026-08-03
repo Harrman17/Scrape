@@ -60,4 +60,6 @@ public class UserSettingsDto
     public string? ItemLocationPostcode { get; set; }
     public string? ItemLocationCity { get; set; }
     public bool AutoRemoveBrand { get; set; }
+    public string? Blocklist { get; set; }
+    public List<string> DefaultBlocklist { get; set; } = UserSettings.DefaultBlocklist;
 }

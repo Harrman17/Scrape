@@ -11,10 +11,14 @@ function Settings({ isDark, setIsDark, onLogout }) {
     itemLocationPostcode: '',
     itemLocationCity: '',
     autoRemoveBrand: false,
+    blocklist: '',
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [defaultBlocklist, setDefaultBlocklist] = useState([])
+  const [customKeywords, setCustomKeywords] = useState([])
+  const [newKeyword, setNewKeyword] = useState('')
   const token = localStorage.getItem('authToken')
 
   function handleLogout() {
@@ -41,7 +45,13 @@ function Settings({ isDark, setIsDark, onLogout }) {
         itemLocationPostcode: data.itemLocationPostcode || '',
         itemLocationCity: data.itemLocationCity || '',
         autoRemoveBrand: data.autoRemoveBrand || false,
+        blocklist: data.blocklist || '',
       })
+      setDefaultBlocklist(data.defaultBlocklist || [])
+      // Parse custom keywords from comma-separated string
+      if (data.blocklist) {
+        setCustomKeywords(data.blocklist.split(',').map(k => k.trim()).filter(k => k))
+      }
     } catch (err) {
       setMessage(`Error: ${err.message}`)
     } finally {
@@ -66,6 +76,7 @@ function Settings({ isDark, setIsDark, onLogout }) {
           itemLocationPostcode: settings.itemLocationPostcode || null,
           itemLocationCity: settings.itemLocationCity || null,
           autoRemoveBrand: settings.autoRemoveBrand,
+          blocklist: customKeywords.join(','),
         })
       })
       if (!response.ok) throw new Error('Failed to save settings')
@@ -76,6 +87,18 @@ function Settings({ isDark, setIsDark, onLogout }) {
     } finally {
       setSaving(false)
     }
+  }
+
+  function addKeyword() {
+    const keyword = newKeyword.trim()
+    if (keyword && !customKeywords.includes(keyword)) {
+      setCustomKeywords([...customKeywords, keyword])
+      setNewKeyword('')
+    }
+  }
+
+  function removeKeyword(keyword) {
+    setCustomKeywords(customKeywords.filter(k => k !== keyword))
   }
 
   if (loading) {
@@ -210,6 +233,75 @@ function Settings({ isDark, setIsDark, onLogout }) {
                     className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-blue-900"
                     placeholder="e.g., London"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Blocklist */}
+            <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <h2 className="mb-2 text-sm font-semibold text-slate-600 dark:text-slate-300">Blocklist</h2>
+
+              {/* Default Blocklist */}
+              {defaultBlocklist.length > 0 && (
+                <div className="mb-4">
+                  <label className="mb-2 block text-xs font-medium text-slate-700 dark:text-slate-300">Default Keywords</label>
+                  <div className="flex flex-wrap gap-2">
+                    {defaultBlocklist.map((keyword, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Blocklist */}
+              <div>
+                <label className="mb-2 block text-xs font-medium text-slate-700 dark:text-slate-300">Your Custom Keywords</label>
+                <div className="mb-2 flex gap-2">
+                  <input
+                    type="text"
+                    value={newKeyword}
+                    onChange={(e) => setNewKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addKeyword()
+                      }
+                    }}
+                    className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-blue-900"
+                    placeholder="Enter keyword and press Add"
+                  />
+                  <button
+                    type="button"
+                    onClick={addKeyword}
+                    className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {customKeywords.map((keyword, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    >
+                      {keyword}
+                      <button
+                        type="button"
+                        onClick={() => removeKeyword(keyword)}
+                        className="ml-1 hover:text-red-900 dark:hover:text-red-300"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {customKeywords.length === 0 && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500">No custom keywords added yet</p>
+                  )}
                 </div>
               </div>
             </div>

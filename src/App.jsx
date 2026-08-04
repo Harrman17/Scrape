@@ -68,11 +68,11 @@ function App() {
                 </div>
                 <div className='flex items-center gap-3'>
                     <span className="text-sm text-slate-500 dark:text-slate-400">{user.name}</span>
-                    <button className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
-                        <Link to="/settings">
-                            ⚙️
-                        </Link>
-                    </button>
+                    <Link to="/settings">
+                        <button className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                                ⚙️  
+                        </button>
+                    </Link>
                 </div>
             </nav>
 

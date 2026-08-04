@@ -70,6 +70,24 @@ def extract_size_from_text(text: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
+def is_video_url(url: str) -> bool:
+    """Check if a URL is likely a video rather than an image."""
+    if not url:
+        return False
+    
+    video_indicators = [
+        '/video/',
+        'video-',
+        '.mp4',
+        '.webm',
+        '.mov',
+        'vnd.amazonvideo',
+        'amazon-video'
+    ]
+    url_lower = url.lower()
+    return any(indicator in url_lower for indicator in video_indicators)
+
+
 def clean_amazon_image_url(url: str) -> str:
     """
     Remove size parameters from Amazon image URLs to match Dilato format.
@@ -146,35 +164,58 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
             image_url = clean_amazon_image_url(image_url)
             break
 
-    # Collect all gallery images
+    # Collect all gallery images (max 5, no duplicates, no videos)
     image_urls = []
+    
+    # Add main image first if found
     if image_url:
-        image_urls.append(image_url)
+        image_urls.append(image_url)  # Already cleaned above
     
     # Find additional gallery images from alt images section
-    for img_elem in soup.select("#altImages img"):
-        alt_image_url = (
+    # Skip the first image (index 0) as it's usually the main image
+    gallery_images = soup.select("#altImages img")
+    for idx, img_elem in enumerate(gallery_images):
+        # Skip first gallery image to avoid duplicating main image
+        if idx == 0:
+            continue
+            
+        if len(image_urls) >= 5:
+            break
+            
+        raw_url = (
             img_elem.get("data-old-hires")
             or img_elem.get("src")
             or ""
         ).strip()
-        if alt_image_url:
-            alt_image_url = clean_amazon_image_url(alt_image_url)
-            if alt_image_url not in image_urls:
-                image_urls.append(alt_image_url)
+        
+        if not raw_url or is_video_url(raw_url):
+            continue
+            
+        cleaned_url = clean_amazon_image_url(raw_url)
+        
+        # Check for duplicates (compare cleaned URLs)
+        if cleaned_url and cleaned_url not in image_urls:
+            image_urls.append(cleaned_url)
     
-    # Fallback: check for images in the main image container
+    # Fallback: check for images in the main image container if we have no images
     if not image_urls:
         for img_elem in soup.select("#imgTagWrapperId img, #main-image img"):
-            fallback_url = (
+            if len(image_urls) >= 5:
+                break
+                
+            raw_url = (
                 img_elem.get("data-old-hires")
                 or img_elem.get("src")
                 or ""
             ).strip()
-            if fallback_url:
-                fallback_url = clean_amazon_image_url(fallback_url)
-                if fallback_url not in image_urls:
-                    image_urls.append(fallback_url)
+            
+            if not raw_url or is_video_url(raw_url):
+                continue
+                
+            cleaned_url = clean_amazon_image_url(raw_url)
+            
+            if cleaned_url and cleaned_url not in image_urls:
+                image_urls.append(cleaned_url)
 
     # Extract feature bullets/description
     features = []

@@ -482,20 +482,16 @@ public class ScrapeController : ControllerBase
         // Generate CSV content
         var csv = new System.Text.StringBuilder();
         
-        // CSV Header for eBay File Exchange format
-        csv.AppendLine("*Action(SiteID=UK|Country=UK|Currency=GBP|Version=1193|CC=UTF-8)");
-        csv.AppendLine("CustomLabel,Action,Quantity,StartPrice,SiteID,Format");
+        // CSV Header for eBay File Exchange format - matches dilato format exactly
+        csv.AppendLine("Action(SiteID=UK|Country=GB|Currency=GBP|Version=585|CC=UTF-8),ItemID,SiteID,Currency,StartPrice,BuyItNowPrice,Quantity,Relationship,RelationshipDetails,CustomLabel");
 
         foreach (var item in pairedItems)
         {
             var newPrice = CalculateSellingPrice(item.AmazonPrice, profitMarkup);
             var quantity = item.InStock ? item.Qty : 0;
 
-            // CustomLabel = eBay Item ID
-            // Action = Revise (to update existing listing)
-            // Quantity = Stock quantity (0 if out of stock)
-            // StartPrice = New selling price
-            csv.AppendLine($"{item.EbayItemId},Revise,{quantity},{newPrice:F2},3,FixedPriceItem");
+            // Format: Revise,ItemID,UK,GBP,Price,,Quantity,,,ASIN
+            csv.AppendLine($"Revise,{item.EbayItemId},UK,GBP,{newPrice:F2},,{quantity},,,{item.Asin}");
         }
 
         var csvBytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using AmazonScraper.Api.Models;
 using AmazonScraper.Api.Services;
 
@@ -199,6 +200,9 @@ public class ScrapeController : ControllerBase
 
             try
             {
+                // Apply brand removal if enabled in user settings
+                ApplyBrandRemoval(product, settings.AutoRemoveBrand);
+
                 Console.WriteLine($"[Scrape] Suggesting category for product: {product.Asin} - {product.Title}");
                 var (catId, catName) = await _ebayCategory.SuggestCategoryAsync(product.Title);
                 if (string.IsNullOrWhiteSpace(catId) || string.IsNullOrWhiteSpace(catName))
@@ -296,6 +300,68 @@ public class ScrapeController : ControllerBase
     {
         if (amazonPrice == null) return null;
         return amazonPrice * (1 + profitMarkup / 100);
+    }
+
+    /// <summary>
+    /// Removes brand name from text (case-insensitive) using word boundaries.
+    /// </summary>
+    private string? RemoveBrandFromText(string? text, string? brand)
+    {
+        if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(brand))
+            return text;
+
+        // Use regex with word boundaries to avoid partial matches
+        // Example: "Sony" won't match "Sonyx" but will match "Sony Camera"
+        var pattern = $@"\b{Regex.Escape(brand)}\b";
+        var result = Regex.Replace(
+            text,
+            pattern,
+            "",
+            RegexOptions.IgnoreCase
+        );
+
+        // Clean up extra spaces that might result from removal
+        result = Regex.Replace(result, @"\s+", " ").Trim();
+        
+        return result;
+    }
+
+    /// <summary>
+    /// Apply brand removal to product fields if AutoRemoveBrand setting is enabled.
+    /// </summary>
+    private void ApplyBrandRemoval(ScrapedProduct product, bool autoRemoveBrand)
+    {
+        if (!autoRemoveBrand || string.IsNullOrWhiteSpace(product.Brand))
+            return;
+
+        Console.WriteLine($"[BrandRemoval] Removing brand '{product.Brand}' from product {product.Asin}");
+        
+        var originalTitle = product.Title;
+        var originalDescription = product.Description;
+
+        // Remove brand from title
+        product.Title = RemoveBrandFromText(product.Title, product.Brand) ?? product.Title;
+        
+        // Remove brand from description
+        product.Description = RemoveBrandFromText(product.Description, product.Brand);
+
+        // Remove brand from features
+        if (product.Features != null && product.Features.Count > 0)
+        {
+            for (int i = 0; i < product.Features.Count; i++)
+            {
+                product.Features[i] = RemoveBrandFromText(product.Features[i], product.Brand) ?? product.Features[i];
+            }
+        }
+
+        if (originalTitle != product.Title)
+        {
+            Console.WriteLine($"[BrandRemoval] Title changed from '{originalTitle}' to '{product.Title}'");
+        }
+        if (originalDescription != product.Description)
+        {
+            Console.WriteLine($"[BrandRemoval] Description updated");
+        }
     }
 
     /// <summary>

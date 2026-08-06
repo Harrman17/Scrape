@@ -303,16 +303,16 @@ public class ScrapeController : ControllerBase
     }
 
     /// <summary>
-    /// Removes brand name from text (case-insensitive) using word boundaries.
+    /// Removes brand/manufacturer name from text (case-insensitive) using word boundaries.
     /// </summary>
-    private string? RemoveBrandFromText(string? text, string? brand)
+    private string? RemoveBrandFromText(string? text, string? brandOrManufacturer)
     {
-        if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(brand))
+        if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(brandOrManufacturer))
             return text;
 
         // Use regex with word boundaries to avoid partial matches
         // Example: "Sony" won't match "Sonyx" but will match "Sony Camera"
-        var pattern = $@"\b{Regex.Escape(brand)}\b";
+        var pattern = $@"\b{Regex.Escape(brandOrManufacturer)}\b";
         var result = Regex.Replace(
             text,
             pattern,
@@ -327,30 +327,63 @@ public class ScrapeController : ControllerBase
     }
 
     /// <summary>
-    /// Apply brand removal to product fields if AutoRemoveBrand setting is enabled.
+    /// Apply brand and manufacturer removal to product fields if AutoRemoveBrand setting is enabled.
+    /// Removes both brand names and common manufacturer references from title, description, and features.
     /// </summary>
     private void ApplyBrandRemoval(ScrapedProduct product, bool autoRemoveBrand)
     {
-        if (!autoRemoveBrand || string.IsNullOrWhiteSpace(product.Brand))
+        if (!autoRemoveBrand)
+        {
+            Console.WriteLine($"[BrandRemoval] Skipped for {product.Asin} - AutoRemoveBrand is disabled");
             return;
+        }
+        
+        if (string.IsNullOrWhiteSpace(product.Brand))
+        {
+            Console.WriteLine($"[BrandRemoval] Skipped for {product.Asin} - No brand detected in product");
+            return;
+        }
 
-        Console.WriteLine($"[BrandRemoval] Removing brand '{product.Brand}' from product {product.Asin}");
+        Console.WriteLine($"[BrandRemoval] Removing brand/manufacturer '{product.Brand}' from product {product.Asin}");
         
         var originalTitle = product.Title;
         var originalDescription = product.Description;
 
-        // Remove brand from title
+        // Remove brand/manufacturer from title
         product.Title = RemoveBrandFromText(product.Title, product.Brand) ?? product.Title;
         
-        // Remove brand from description
+        // Remove brand/manufacturer from description
         product.Description = RemoveBrandFromText(product.Description, product.Brand);
 
-        // Remove brand from features
+        // Remove brand/manufacturer from features
         if (product.Features != null && product.Features.Count > 0)
         {
             for (int i = 0; i < product.Features.Count; i++)
             {
                 product.Features[i] = RemoveBrandFromText(product.Features[i], product.Brand) ?? product.Features[i];
+            }
+        }
+
+        // Also remove common manufacturer-related phrases
+        var manufacturerPhrases = new[]
+        {
+            "manufacturer",
+            "manufactured by",
+            "made by",
+            "produced by"
+        };
+
+        foreach (var phrase in manufacturerPhrases)
+        {
+            product.Title = RemoveBrandFromText(product.Title, phrase) ?? product.Title;
+            product.Description = RemoveBrandFromText(product.Description, phrase);
+            
+            if (product.Features != null)
+            {
+                for (int i = 0; i < product.Features.Count; i++)
+                {
+                    product.Features[i] = RemoveBrandFromText(product.Features[i], phrase) ?? product.Features[i];
+                }
             }
         }
 

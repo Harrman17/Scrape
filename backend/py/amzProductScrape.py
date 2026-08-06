@@ -269,18 +269,28 @@ def parse_product_html(html: str, url: str) -> dict[str, Any]:
             value = td.get_text(" ", strip=True)
             product_details[key] = value
     
+    # Try to extract brand from the new Amazon layout (po-brand class)
+    brand_elem = soup.select_one(".po-brand .po-break-word")
+    if not brand_elem:
+        brand_elem = soup.select_one(".po-brand .a-size-base")
+    
     # Extract brand, MPN, model, etc.
-    brand = (
-        product_details.get("brand")
-        or product_details.get("manufacturer")
-        or extract_attribute_from_text(
-            full_text,
-            [
-                r"\bbrand\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)",
-                r"\bmanufacturer\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)",
-            ],
+    brand = None
+    if brand_elem:
+        brand = brand_elem.get_text(" ", strip=True) or None
+    
+    if not brand:
+        brand = (
+            product_details.get("brand")
+            or product_details.get("manufacturer")
+            or extract_attribute_from_text(
+                full_text,
+                [
+                    r"\bbrand\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)",
+                    r"\bmanufacturer\b\s*[:\-]\s*([A-Za-z0-9&/().\s-]+)",
+                ],
+            )
         )
-    )
     mpn = (
         product_details.get("part number")
         or product_details.get("manufacturer part number")

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import ImportProducts from './pages/ImportProducts'
 import ImportHistory from './pages/ImportHistory'
+import ListingHealth from './pages/ListingHealth'
 import Home from './pages/Home';
 import Inventory from './pages/Inventory';
 import Settings from './pages/Settings';
@@ -62,6 +63,9 @@ function App() {
                     <Link to="/import-products">
                         Import Products
                     </Link>
+                    <Link to="/listing-health">
+                        Listing Health
+                    </Link>
                     <Link to="/pairing">
                         Pairing
                     </Link>
@@ -77,6 +81,7 @@ function App() {
             </nav>
 
             <Routes>
+                <Route path="/listing-health" element={<ListingHealth />} />
                 <Route path="/"  element={<Home />}/>
                 <Route path="/import-products" element={<ImportProducts />} />
                 <Route path="/import-history" element={<ImportHistory />} />

@@ -119,6 +119,10 @@ function Inventory() {
     setSelectedIds(filteredProducts.map((p) => p.userInventoryId))
   }
 
+  function deselectAll() {
+    setSelectedIds([])
+  }
+
   function toggleSelectOne(id) {
     setSelectedIds((current) =>
       current.includes(id) ? current.filter((selectedId) => selectedId !== id) : [...current, id]
@@ -219,6 +223,14 @@ function Inventory() {
               className="cursor-pointer rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               Select all
+            </button>
+            <button
+              type="button"
+              onClick={deselectAll}
+              disabled={selectedIds.length === 0}
+              className="cursor-pointer rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              Deselect all
             </button>
             <button
               type="button"

@@ -325,4 +325,35 @@ public class UserInventoryRepository
 
         return asins;
     }
+
+    /// <summary>
+    /// Update inventory status and eBay item ID by matching ASIN.
+    /// Used by listing health checks to sync eBay statuses.
+    /// </summary>
+    public async Task UpdateStatusByAsinAsync(long userId, string asin, string ebayItemId, string status)
+    {
+        const string sql = @"
+            UPDATE user_inventory
+            SET status = @status,
+                ebay_item_id = @ebayItemId,
+                updated_at = now()
+            FROM inventory i
+            WHERE user_inventory.inventory_id = i.id
+              AND user_inventory.user_id = @userId
+              AND UPPER(i.asin) = UPPER(@asin)";
+
+        await using var conn = await _dataSource.OpenConnectionAsync();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("userId", userId);
+        cmd.Parameters.AddWithValue("asin", asin);
+        cmd.Parameters.AddWithValue("ebayItemId", ebayItemId);
+        cmd.Parameters.AddWithValue("status", status);
+        
+        var rowsAffected = await cmd.ExecuteNonQueryAsync();
+        
+        if (rowsAffected == 0)
+        {
+            Console.WriteLine($"[UserInventory] No inventory item found for user {userId} with ASIN {asin}");
+        }
+    }
 }
